@@ -26,6 +26,7 @@ import {
 } from '../services/entity_events.service';
 import { Logger } from '../../../libs/services/logger.service';
 import { AppConfig } from '../../tokens_manager/config/config';
+import { UserGroups } from '../schema/userGroup.schema';
 @injectable()
 export class UserController {
   constructor(
@@ -201,6 +202,11 @@ export class UserController {
         orgId: req.user?.orgId,
       });
 
+      await UserGroups.updateOne(
+        { orgId: newUser.orgId, type: 'everyone' }, // Find the everyone group in the same org
+        { $addToSet: { users: newUser._id } }, // Add user to the group if not already present
+      );
+
       await this.eventService.start();
       const event: Event = {
         eventType: EventType.NewUserEvent,
@@ -240,26 +246,26 @@ export class UserController {
         isDeleted: false,
       });
 
-      if(!user){
-        throw new NotFoundError('User not found')
+      if (!user) {
+        throw new NotFoundError('User not found');
       }
 
-      if(updateFields.firstName){
+      if (updateFields.firstName) {
         user.firstName = updateFields.firstName;
       }
-      if(updateFields.lastName){
+      if (updateFields.lastName) {
         user.lastName = updateFields.lastName;
       }
-      if(updateFields.fullName){
+      if (updateFields.fullName) {
         user.fullName = updateFields.fullName;
       }
-      if(updateFields.middleName){
+      if (updateFields.middleName) {
         user.middleName = updateFields.middleName;
       }
-      if(updateFields.email){
+      if (updateFields.email) {
         user.email = updateFields.email;
       }
-      if(updateFields.designation){
+      if (updateFields.designation) {
         user.designation = updateFields.designation;
       }
 
@@ -684,9 +690,11 @@ export class UserController {
   ): Promise<void> {
     try {
       const { emails } = req.body;
+      const { groupIds } = req.body;
       if (!emails) {
         throw new BadRequestError('emails are required');
       }
+      const orgId = req.user?.orgId;
       // Check if emails array is provided
       if (!emails || !Array.isArray(emails)) {
         throw new BadRequestError('Please provide an array of email addresses');
@@ -705,7 +713,6 @@ export class UserController {
       const existingUsers = await Users.find({
         email: { $in: emails },
       });
-
       // Separate active and deleted users
       const activeUsers = existingUsers.filter((user) => !user.isDeleted);
       const deletedUsers = existingUsers.filter((user) => user.isDeleted);
@@ -733,6 +740,20 @@ export class UserController {
         restoredUsers = await Users.find({
           email: { $in: deletedEmails },
         });
+      }
+      for (let i = 0; i < existingUsers.length; ++i) {
+        const userId = existingUsers[i]?._id;
+
+        await UserGroups.updateMany(
+          { _id: { $in: groupIds }, orgId },
+          { $addToSet: { users: userId } },
+          { new: true },
+        );
+
+        await UserGroups.updateOne(
+          { orgId: req.user?.orgId, type: 'everyone' }, // Find the everyone group in the same org
+          { $addToSet: { users: userId } }, // Add user to the group if not already present
+        );
       }
 
       // Filter emails that need new accounts
@@ -766,6 +787,18 @@ export class UserController {
       for (let i = 0; i < emailsForNewAccounts.length; ++i) {
         const email = emailsForNewAccounts[i];
         const userId = newUsers[i]?._id;
+
+        await UserGroups.updateMany(
+          { _id: { $in: groupIds }, orgId },
+          { $addToSet: { users: userId } },
+          { new: true },
+        );
+
+        await UserGroups.updateOne(
+          { orgId: req.user?.orgId, type: 'everyone' }, // Find the everyone group in the same org
+          { $addToSet: { users: userId } }, // Add user to the group if not already present
+        );
+
         const passwordResetToken = jwt.sign(
           {
             email,
@@ -824,6 +857,7 @@ export class UserController {
       for (let i = 0; i < emailsForRestoredAccounts.length; ++i) {
         const email = emailsForRestoredAccounts[i];
         const userId = restoredUsers[i]?._id;
+
         if (!email) {
           continue;
         }

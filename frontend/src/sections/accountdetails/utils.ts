@@ -1,4 +1,3 @@
-
 import axios from 'src/utils/axios';
 
 import { CONFIG } from 'src/config-global';
@@ -145,7 +144,7 @@ export const updateUser = async (userId: string, userData: any) => {
   }
 };
 
-export const uploadOrgLogo = async ( formData: any) => {
+export const uploadOrgLogo = async (formData: any) => {
   try {
     const response = await axios.put(`${CONFIG.backendUrl}/api/v1/org/logo`, formData, {
       headers: {
@@ -277,7 +276,7 @@ export const addUsersToGroups = async ({ userIds, groupIds }: AddUsersToGroupsRe
 
 export const inviteUsers = async ({ emails, groupIds }: InviteUsersRequest) => {
   try {
-    const response = await axios.post(`${CONFIG.backendUrl}/api/v1/appuser/invite`, {
+    const response = await axios.post(`${CONFIG.backendUrl}/api/v1/users/bulk/invite`, {
       emails,
       groupIds,
     });

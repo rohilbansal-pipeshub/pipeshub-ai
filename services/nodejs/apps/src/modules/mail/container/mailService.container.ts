@@ -26,10 +26,6 @@ export class MailServiceContainer {
     appConfig: AppConfig,
   ): Promise<void> {
     try {
-      if (container.isBound('MailController')) {
-        container.unbind('MailController'); // Unbind safely before rebinding
-      }
-
       container.bind<MailController>('MailController').toDynamicValue(() => {
         return new MailController(appConfig, container.get('Logger'));
       });

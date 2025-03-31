@@ -138,7 +138,6 @@ export class OrgController {
         orgId: org._id,
         users: [],
       });
-      //add admin to everyone
 
       const orgAuthConfig = new OrgAuthConfig({
         orgId: org._id,
@@ -166,6 +165,8 @@ export class OrgController {
       } else {
         await orgAuthConfig.save();
         await adminUserGroup.save();
+        await allUsersGroup.save();
+        await standardUsersGroup.save();
         await adminUser.save();
         await adminUserCredentials.save();
         await org.save();
