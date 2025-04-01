@@ -1004,8 +1004,8 @@ class GmailSyncEnterpriseService(BaseGmailSyncService):
                             "Failed to process batch starting at index %s", i)
                         continue
                     
-                    connector_config = await self.config_service.get_config(config_node_constants.CONNECTORS_SERVICE.value)
-                    connector_endpoint = connector_config.get('endpoint')
+                    endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+                    connector_endpoint = endpoints.get('connectors').get('endpoint')
 
                     # Send events to Kafka for the batch
                     for metadata in batch_metadata:
@@ -1210,8 +1210,8 @@ class GmailSyncEnterpriseService(BaseGmailSyncService):
                     logger.warning("Failed to process batch starting at index %s", i)
                     continue
                 
-                connector_config = await self.config_service.get_config(config_node_constants.CONNECTORS_SERVICE.value)
-                connector_endpoint = connector_config.get('endpoint')
+                endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+                connector_endpoint = endpoints.get('connectors').get('endpoint')
 
                 # Send events to Kafka
                 for metadata in batch_metadata:
@@ -1476,8 +1476,8 @@ class GmailSyncIndividualService(BaseGmailSyncService):
                 # Send events to Kafka for threads, messages and attachments
                 logger.info("🚀 Preparing events for Kafka for batch %s", i)
                                 
-                connector_config = await self.config_service.get_config(config_node_constants.CONNECTORS_SERVICE.value)
-                connector_endpoint = connector_config.get('endpoint')
+                endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+                connector_endpoint = endpoints.get('connectors').get('endpoint')
 
                 for metadata in batch_metadata:   
                     # Message events

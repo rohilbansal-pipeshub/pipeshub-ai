@@ -167,8 +167,8 @@ class KafkaRouteConsumer:
             path_params = value.get('path_params', {})
             formatted_path = route_handler.format(**path_params)
             
-            connector_config = await self.config_service.get_config(config_node_constants.CONNECTORS_SERVICE.value)
-            connector_endpoint = connector_config.get('endpoint')
+            endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+            connector_endpoint = endpoints.get('connectors').get('endpoint')
             
             print(formatted_path)
             

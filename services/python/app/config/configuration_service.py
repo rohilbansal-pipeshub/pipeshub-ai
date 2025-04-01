@@ -19,13 +19,10 @@ class config_node_constants(Enum):
     # Service paths
     ARANGODB = "/services/arangodb"
     QDRANT = "/services/qdrant"
-    CONFIGURATION_MANAGER = "/services/cmBackend"
     REDIS = "/services/redis"
     AI_MODELS = "/services/aiModels"
     KAFKA = "/services/kafka"
-    INDEXING = "/services/indexing"
-    QUERY_BACKEND = "/services/queryBackend"
-    CONNECTORS_SERVICE = "/services/connectors"
+    ENDPOINTS = "/services/endpoints"
     
     # Non-service paths
     LOG_LEVEL = "/logLevel"
@@ -188,8 +185,15 @@ class ConfigurationService:
             # Convert value to JSON string
             value_json = json.dumps(value)
             
-            # Encrypt the value
-            encrypted_value = self.encryption_service.encrypt(value_json)
+            EXCLUDED_KEYS = [
+                '/services/endpoints',
+            ]
+            if key not in EXCLUDED_KEYS:
+                # Encrypt the value
+                encrypted_value = self.encryption_service.encrypt(value_json)
+            else:
+                encrypted_value = value_json
+                
             logger.debug("🔒 Encrypted value for key %s", key)
             
             # Store the encrypted value
@@ -239,12 +243,18 @@ class ConfigurationService:
         try:
             full_key = key
             encrypted_value = await self.store.get_key(full_key)
-
+            
+            EXCLUDED_KEYS = [
+                '/services/endpoints',
+            ]
             if encrypted_value is not None:
                 try:
                     # Decrypt the stored value
-                    decrypted_value = self.encryption_service.decrypt(encrypted_value)
-                    # Parse the JSON string back to its original form
+                    if full_key not in EXCLUDED_KEYS:
+                        decrypted_value = self.encryption_service.decrypt(encrypted_value)
+                    else:
+                        decrypted_value = encrypted_value 
+
                     return json.loads(decrypted_value)
                 except Exception as e:
                     logger.error(f"❌ Failed to decrypt value for key {full_key}: {str(e)}")

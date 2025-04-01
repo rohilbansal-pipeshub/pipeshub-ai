@@ -875,8 +875,8 @@ class DriveSyncEnterpriseService(BaseDriveSyncService):
                                     
                                     user_id = user['userId']
                                     
-                                    connector_config = await self.config_service.get_config(config_node_constants.CONNECTORS_SERVICE.value)
-                                    connector_endpoint = connector_config.get('endpoint')
+                                    endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+                                    connector_endpoint = endpoints.get('connectors').get('endpoint')
             
                                     record_version = 0  # Initial version for new files
                                     extension = file.get('extension')
@@ -1077,8 +1077,8 @@ class DriveSyncEnterpriseService(BaseDriveSyncService):
 
                                 user_id = user['userId']
                                 
-                                connector_config = await self.config_service.get_config(config_node_constants.CONNECTORS_SERVICE.value)
-                                connector_endpoint = connector_config.get('endpoint')
+                                endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+                                connector_endpoint = endpoints.get('connectors').get('endpoint')
 
                                 # Send Kafka indexing event
                                 index_event = {
@@ -1345,8 +1345,8 @@ class DriveSyncIndividualService(BaseDriveSyncService):
                                 mime_type = file.get('mimeType')
                                 user_id = user['userId']
                                 
-                                connector_config = await self.config_service.get_config(config_node_constants.CONNECTORS_SERVICE.value)
-                                connector_endpoint = connector_config.get('endpoint')
+                                endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+                                connector_endpoint = endpoints.get('connectors').get('endpoint')
                                                     
                                 index_event = {
                                     "orgId": org_id,

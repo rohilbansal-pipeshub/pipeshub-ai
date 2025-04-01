@@ -130,8 +130,8 @@ class DriveChangeHandler:
                 extension = None
                 mime_type = None
                 
-            connector_config = await self.config_service.get_config(config_node_constants.CONNECTORS_SERVICE.value)
-            connector_endpoint = connector_config.get('endpoint')
+            endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+            connector_endpoint = endpoints.get('connectors').get('endpoint')
             
             reindex_event = None
 

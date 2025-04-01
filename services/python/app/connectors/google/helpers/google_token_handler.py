@@ -33,8 +33,8 @@ class GoogleTokenHandler:
             "Authorization": f"Bearer {jwt_token}"
         }
         
-        nodejs_config = await self.config_service.get_config(config_node_constants.CONFIGURATION_MANAGER.value)
-        nodejs_endpoint = nodejs_config.get('endpoint')
+        endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+        nodejs_endpoint = endpoints.get('cm').get('endpoint')
         logger.info(f"🚀 Nodejs Endpoint: {nodejs_endpoint}")
         
         # Fetch credentials from API
@@ -72,8 +72,8 @@ class GoogleTokenHandler:
                 "Authorization": f"Bearer {jwt_token}"
             }
             
-            nodejs_config = await self.config_service.get_config(config_node_constants.CONFIGURATION_MANAGER.value)
-            nodejs_endpoint = nodejs_config.get('endpoint')
+            endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+            nodejs_endpoint = endpoints.get('cm').get('endpoint')
 
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -110,8 +110,8 @@ class GoogleTokenHandler:
         headers = {
             "Authorization": f"Bearer {jwt_token}"
         }
-        nodejs_config = await self.config_service.get_config(config_node_constants.CONFIGURATION_MANAGER.value)
-        nodejs_endpoint = nodejs_config.get('endpoint')
+        endpoints = await self.config_service.get_config(config_node_constants.ENDPOINTS.value)
+        nodejs_endpoint = endpoints.get('cm').get('endpoint')
         
         # Call credentials API
         async with aiohttp.ClientSession() as session:

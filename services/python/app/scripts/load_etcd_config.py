@@ -37,6 +37,17 @@ async def load_config():
         logger.info("📝 Loading default configuration...")
         await config_service.load_default_config(overwrite=overwrite)
         logger.info("✅ Default configuration loaded successfully")
+        
+        # Print all existing keys and their values
+        included_keys = [
+            '/services/aiModels'
+        ]
+        
+        all_keys = await config_service.store.get_all_keys()
+        for key in all_keys:
+            if key in included_keys:
+                value = await config_service.get_config(key)
+                logger.info(f"Key: {key} | Value: {value}")
 
     except Exception as e:
         logger.error(f"❌ Failed to load configuration: {str(e)}")
@@ -45,6 +56,7 @@ async def load_config():
 if __name__ == "__main__":
     try:
         asyncio.run(load_config())
+        logger.info("✅ Configuration loaded successfully")
     except KeyboardInterrupt:
         logger.info("⚠️ Process interrupted by user")
     except Exception as e:
