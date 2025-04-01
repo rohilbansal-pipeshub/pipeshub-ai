@@ -285,16 +285,19 @@ class Processor:
                         model_id=AzureDocIntelligenceModel.PREBUILT_DOCUMENT.value
                     )
                     break
-                elif provider == OCRProvider.PYMUPDF_PROVIDER.value:
+                elif provider == OCRProvider.OCRMYPDF_PROVIDER.value:
                     logger.debug("📚 Setting up PyMuPDF OCR handler")
                     handler = OCRHandler(
-                        OCRProvider.PYMUPDF_PROVIDER.value
+                        OCRProvider.OCRMYPDF_PROVIDER.value
                     )
                     break
             
             if not handler:
-                logger.error("❌ No supported OCR provider found in configuration")
-                raise Exception("No supported OCR provider found in configuration")
+                logger.debug("📚 Setting up PyMuPDF OCR handler")
+                handler = OCRHandler(
+                    OCRProvider.OCRMYPDF_PROVIDER.value
+                )
+                provider = OCRProvider.OCRMYPDF_PROVIDER.value
             
             # Process document
             logger.info("🔄 Processing document with OCR handler")

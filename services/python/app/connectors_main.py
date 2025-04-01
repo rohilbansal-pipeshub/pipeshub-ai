@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request, Depends, HTTPException, status
 from app.config.arangodb_constants import Connectors
-from app.middlewares.auth import authMiddleware
+from app.api.middlewares.auth import authMiddleware
 
 print("Starting connector app")
 

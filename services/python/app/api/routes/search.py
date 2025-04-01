@@ -5,17 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import Optional, Dict, Any, List
 from app.setups.query_setup import AppContainer
 from app.utils.logger import logger
-from app.config.configuration_service import ConfigurationService, config_node_constants
-from app.config.ai_models_named_constants import AzureOpenAILLM, LLMProvider
+from app.config.configuration_service import ConfigurationService
 from app.modules.retrieval.retrieval_service import RetrievalService
 from app.modules.retrieval.retrieval_arango import ArangoService
-from app.core.llm_service import AzureLLMConfig, OpenAILLMConfig, LLMFactory
 from app.utils.query_transform import setup_query_transformation
-from app.config.configuration_service import ConfigurationService
-from app.config.ai_models_named_constants import LLMProvider, AzureOpenAILLM
-from app.core.llm_service import AzureLLMConfig, OpenAILLMConfig
-from app.config.configuration_service import config_node_constants
-from app.core.llm_service import LLMFactory
+from app.utils.llm import get_llm
 
 router = APIRouter()
 
@@ -55,46 +49,12 @@ async def get_config_service(request: Request) -> ConfigurationService:
 async def search(request: Request, body: SearchQuery, 
                 retrieval_service: RetrievalService = Depends(get_retrieval_service),
                 arango_service: ArangoService = Depends(get_arango_service),
-                config_service: ConfigurationService = Depends(get_config_service)
-                ):
+                config_service: ConfigurationService = Depends(get_config_service)):
     """Perform semantic search across documents"""
     try:
         print("orgId is ", request.state.user.get('orgId'))
        
-        # Setup LLM configuration
-        ai_models = await config_service.get_config(config_node_constants.AI_MODELS.value)
-        llm_configs = ai_models['llm']
-        # For now, we'll use the first available provider that matches our supported types
-        # We will add logic to choose a specific provider based on our needs
-        llm_config = None
-        print(ai_models, "ai_models")
-        for config in llm_configs:
-            provider = config['provider']
-            if provider == LLMProvider.AZURE_OPENAI_PROVIDER.value:
-                llm_config = AzureLLMConfig(
-                    model=config['configuration']['model'],
-                    temperature=0.6,
-                    api_key=config['configuration']['apiKey'],
-                    azure_endpoint=config['configuration']['endpoint'],
-                    azure_api_version=AzureOpenAILLM.AZURE_OPENAI_VERSION.value,
-                    azure_deployment=config['configuration']['deploymentName'],
-                )
-                break
-            elif provider == LLMProvider.OPENAI_PROVIDER.value:
-                llm_config = OpenAILLMConfig(
-                    model=config['configuration']['model'],
-                    temperature=0.6,
-                    api_key=config['configuration']['apiKey'],
-                )
-                break
-        
-        if not llm_config:
-            raise ValueError("No supported LLM provider found in configuration")
-        
-        print(llm_config, "llm_config")
-        # Create async LLM
-        llm = LLMFactory.create_llm(llm_config)
-
+        llm = await get_llm(config_service)
         # Setup query transformation
         rewrite_chain, expansion_chain = await setup_query_transformation(llm)
 

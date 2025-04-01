@@ -6,16 +6,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import Optional, Dict, Any, List
 from app.setups.query_setup import AppContainer
 from app.utils.logger import logger
-from app.config.configuration_service import config_node_constants
 from app.modules.retrieval.retrieval_service import RetrievalService
 from app.modules.retrieval.retrieval_arango import ArangoService
 from app.config.configuration_service import ConfigurationService
 from app.modules.qna.prompt_templates import qna_prompt
-from app.core.llm_service import AzureLLMConfig, OpenAILLMConfig, LLMFactory
-from app.config.ai_models_named_constants import LLMProvider, AzureOpenAILLM
-from app.api.chatbot.citations import process_citations
+from app.utils.citations import process_citations
 from app.utils.query_transform import setup_query_transformation
 from app.utils.query_decompose import QueryDecompositionService
+from app.modules.reranker.reranker import RerankerService
+from app.utils.llm import get_llm
 
 router = APIRouter()
 
@@ -45,45 +44,21 @@ async def get_config_service(request: Request) -> ConfigurationService:
     config_service = container.config_service()
     return config_service
 
+async def get_reranker_service(request: Request) -> RerankerService:
+    container: AppContainer = request.app.container
+    reranker_service = container.reranker_service()
+    return reranker_service
+
 @router.post("/chat")
 @inject
 async def askAI(request: Request, query_info: ChatQuery, 
-                retrieval_service=Depends(get_retrieval_service),
-                arango_service=Depends(get_arango_service),
-                config_service=Depends(get_config_service)):
+                retrieval_service: RetrievalService=Depends(get_retrieval_service),
+                arango_service: ArangoService=Depends(get_arango_service),
+                config_service: ConfigurationService=Depends(get_config_service),
+                reranker_service: RerankerService=Depends(get_reranker_service)):
     """Perform semantic search across documents"""
     try:
-        # Setup LLM configuration
-        ai_models = await config_service.get_config(config_node_constants.AI_MODELS.value)
-        llm_configs = ai_models['llm']
-        # For now, we'll use the first available provider that matches our supported types
-        # We will add logic to choose a specific provider based on our needs
-        llm_config = None
-        
-        for config in llm_configs:
-            provider = config['provider']
-            if provider == LLMProvider.AZURE_OPENAI_PROVIDER.value:
-                llm_config = AzureLLMConfig(
-                    model=config['configuration']['model'],
-                    temperature=0.6,
-                    api_key=config['configuration']['apiKey'],
-                    azure_endpoint=config['configuration']['endpoint'],
-                    azure_api_version=AzureOpenAILLM.AZURE_OPENAI_VERSION.value,
-                    azure_deployment=config['configuration']['deploymentName'],
-                )
-                break
-            elif provider == LLMProvider.OPENAI_PROVIDER.value:
-                llm_config = OpenAILLMConfig(
-                    model=config['configuration']['model'],
-                    temperature=0.6,
-                    api_key=config['configuration']['apiKey'],
-                )
-                break
-        
-        if not llm_config:
-            raise ValueError("No supported LLM provider found in configuration")
-
-        llm = LLMFactory.create_llm(llm_config)
+        llm = await get_llm(config_service)        
       
         print("useDecomposition", query_info.useDecomposition)
         if query_info.useDecomposition:
@@ -122,27 +97,46 @@ async def askAI(request: Request, query_info: ChatQuery,
             queries = [rewritten_query.strip()] if rewritten_query.strip() else []
             queries.extend([q for q in expanded_queries_list if q not in queries])
             seen = set()
+            unique_queries = []
             for q in queries:
                 if q.lower() not in seen:
                     seen.add(q.lower())
-                    complete_queries.append(q)
+                    unique_queries.append(q)
+
+            results = await retrieval_service.search_with_filters(
+                queries=unique_queries,
+                org_id=request.state.user.get('orgId'),
+                user_id=request.state.user.get('userId'),
+                limit=query_info.limit,
+                filter_groups=query_info.filters,
+                arango_service=arango_service
+            )
+            logger.info("Results from the AI service received")
+            # Format conversation history
+            previous_conversations = query_info.previousConversations
+            print(results, "formatted_results")
+            template = Template(qna_prompt)
+            # Get raw search results
+            search_results = results.get('searchResults', [])
+        
+            # Apply reranking
+            if search_results and len(search_results) > 1:
+                # Use the original query for reranking
+                reranked_results = await reranker_service.rerank(
+                    query=query_info.query,
+                    documents=search_results,
+                    top_k=query_info.limit  # Maintain the same limit
+                )
+                # Update results with reranked documents
+                results['searchResults'] = reranked_results
+            
+                print(results, "reranked_results")
+                complete_queries.append(results['searchResults'])
         # Get search results
         logger.debug("complete queries", complete_queries)
-        results = await retrieval_service.search_with_filters(
-            queries=complete_queries,
-            org_id=request.state.user.get('orgId'),
-            user_id=request.state.user.get('userId'),
-            limit=query_info.limit,
-            filter_groups=query_info.filters,
-            arango_service=arango_service
-        )
-        logger.info("Results from the AI service received")
-        results = results.get('searchResults')
-        # Format conversation history
-        previous_conversations = query_info.previousConversations
-        print(results, "formatted_results")
-        template = Template(qna_prompt) 
-        rendered_form = template.render(query=query_info.query, rephrased_queries=complete_queries, records = results) 
+        
+
+        rendered_form = template.render(query=query_info.query, rephrased_queries=complete_queries, records = results['searchResults']) 
 
         messages = [
             {"role": "system", "content": "You are a enterprise questions answering expert"}

@@ -1,15 +1,14 @@
+import uvicorn
 from fastapi import FastAPI, Depends, Request, HTTPException, status
 from fastapi.responses import JSONResponse 
 from app.setups.query_setup import AppContainer
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from app.api.search.routes import router as search_router
-from app.api.chatbot.routes import router as chatbot_router
-from app.api.utils.routes import router as utils_router
-
-from app.middlewares.auth import authMiddleware
-import uvicorn
+from app.api.routes.search import router as search_router
+from app.api.routes.chatbot import router as chatbot_router
+from app.api.routes.records import router as records_router
+from app.api.middlewares.auth import authMiddleware
 
 from app.utils.logger import logger
 
@@ -44,8 +43,8 @@ async def get_initialized_container() -> AppContainer:
         logger.debug("🔧 First-time container initialization")
         await initialize_container(container)
         container.wire(modules=[
-            "app.api.search.routes",
-            "app.api.chatbot.routes",
+            "app.api.routes.search",
+            "app.api.routes.chatbot",
             "app.modules.retrieval.retrieval_service",
             "app.modules.retrieval.retrieval_arango"
         ])
@@ -115,7 +114,7 @@ app.add_middleware(
 # Include routes from routes.py
 app.include_router(search_router, prefix="/api/v1")
 app.include_router(chatbot_router, prefix="/api/v1")
-app.include_router(utils_router, prefix="/api/v1")
+app.include_router(records_router, prefix="/api/v1")
 
 def run(host: str = "0.0.0.0", port: int = 8000, reload: bool = True):
     """Run the application"""

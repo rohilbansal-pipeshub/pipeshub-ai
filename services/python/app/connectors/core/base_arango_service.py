@@ -8,7 +8,7 @@ from app.config.arangodb_constants import CollectionNames
 from app.config.configuration_service import config_node_constants
 import uuid
 from app.config.arangodb_constants import DepartmentNames
-from app.schema.documents import (
+from schema.documents import (
     user_schema,
     orgs_schema,
     app_schema,
@@ -18,7 +18,7 @@ from app.schema.documents import (
     department_schema,
     kb_schema
 )
-from app.schema.edges import (
+from schema.edges import (
     record_relations_schema,
     is_of_type_schema,
     permissions_schema,

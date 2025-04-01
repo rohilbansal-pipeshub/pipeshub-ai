@@ -5,6 +5,8 @@ from arango import ArangoClient
 from app.modules.retrieval.retrieval_service import RetrievalService
 from app.modules.retrieval.retrieval_arango import ArangoService
 from app.utils.logger import logger
+from app.modules.reranker.reranker import RerankerService
+
 
 class AppContainer(containers.DeclarativeContainer):
     """Dependency injection container for the application."""
@@ -73,4 +75,9 @@ class AppContainer(containers.DeclarativeContainer):
     retrieval_service = providers.Resource(
         _create_retrieval_service,
         config=qdrant_config
+    )
+
+    reranker_service = providers.Singleton(
+        RerankerService,
+        model_name="BAAI/bge-reranker-base"  # Choose model based on speed/accuracy needs
     )

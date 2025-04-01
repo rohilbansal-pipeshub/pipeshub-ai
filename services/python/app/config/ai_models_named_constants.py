@@ -6,7 +6,7 @@ class LLMProvider(Enum):
     
 class OCRProvider(Enum):
     AZURE_PROVIDER = "azureDI"
-    PYMUPDF_PROVIDER = "pymupdf"
+    OCRMYPDF_PROVIDER = "ocrmypdf"
     
 class AzureOpenAILLM(Enum):
     AZURE_OPENAI_VERSION = "2023-07-01-preview"

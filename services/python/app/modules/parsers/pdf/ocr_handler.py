@@ -101,8 +101,8 @@ class OCRHandler:
         """Factory method to create appropriate OCR strategy"""
         logger.debug(f"🏭 Creating OCR strategy: {strategy_type}")
 
-        if strategy_type == OCRProvider.PYMUPDF_PROVIDER.value:
-            logger.debug("📚 Creating PyMuPDF OCR strategy")
+        if strategy_type == OCRProvider.OCRMYPDF_PROVIDER.value:
+            logger.debug("📚 Creating OCRMYPDF OCR strategy")
             from app.modules.parsers.pdf.pymupdf_ocrmypdf_processor import PyMuPDFOCRStrategy
             return PyMuPDFOCRStrategy(
                 language=kwargs.get("language", "eng")
