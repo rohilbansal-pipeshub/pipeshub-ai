@@ -32,10 +32,11 @@ export class StorageService {
   public async initialize(): Promise<void> {
     if (!this.isInitialized) {
       try {
-        const storageType =
-          (await this.keyValueStoreService.get<string>(
-            storageEtcdPaths.storageType,
-          )) || storageTypes.LOCAL;
+        const storageConfig =
+          (await this.keyValueStoreService.get<string>(storageEtcdPaths)) ||
+          '{}';
+        const { storageType } = JSON.parse(storageConfig) || storageTypes.LOCAL;
+        console.log(storageType);
         this.adapter = await this.initializeStorageAdapter(storageType);
         this.isInitialized = true;
       } catch (error) {

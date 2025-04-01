@@ -34,7 +34,7 @@ import {
 import { FileBufferInfo } from '../../../libs/middlewares/file_processor/fp.interface';
 import {
   maxFileSizeForPipesHubService,
-  storageEtcdPaths,
+  endpoint,
 } from '../constants/constants';
 import { Logger } from '../../../libs/services/logger.service';
 import { KeyValueStoreService } from '../../../libs/services/keyValueStore.service';
@@ -232,9 +232,11 @@ export class UploadDocumentService {
       if (isValidStorageVendor(storageTypeKey)) {
         // TODO : Move this to the local storage provider
         if (storageTypeKey === StorageVendor.Local) {
+          const url =
+            (await this.keyValueStoreService.get<string>(endpoint)) || '{}';
+
           const storageServiceEndpoint =
-            (await this.keyValueStoreService.get(storageEtcdPaths.endpoint)) ||
-            this.defaultConfig.endpoint;
+            JSON.parse(url).storage.endpoint || this.defaultConfig.endpoint;
           localPath = uploadResult.data;
           // normalize the url to the local storage
           const baseUrl = uploadResult.data.replace(

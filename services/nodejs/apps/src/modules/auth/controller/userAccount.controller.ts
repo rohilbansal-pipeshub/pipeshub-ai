@@ -215,7 +215,7 @@ export class UserAccountController {
       if (allowedMethods.includes('google')) {
         const configManagerResponse =
           await this.configurationManagerService.getConfig(
-            this.config.cmUrl,
+            this.config.cmBackend,
             GOOGLE_AUTH_CONFIG_PATH,
             user,
             this.config.scopedJwtSecret,
@@ -226,7 +226,7 @@ export class UserAccountController {
       if (allowedMethods.includes('microsoft')) {
         const configManagerResponse =
           await this.configurationManagerService.getConfig(
-            this.config.cmUrl,
+            this.config.cmBackend,
             MICROSOFT_AUTH_CONFIG_PATH,
             user,
             this.config.scopedJwtSecret,
@@ -237,7 +237,7 @@ export class UserAccountController {
       if (allowedMethods.includes(AuthMethodType.AZURE_AD)) {
         const configManagerResponse =
           await this.configurationManagerService.getConfig(
-            this.config.cmUrl,
+            this.config.cmBackend,
             AZURE_AD_AUTH_CONFIG_PATH,
             user,
             this.config.scopedJwtSecret,
@@ -920,7 +920,7 @@ export class UserAccountController {
   ) {
     const configManagerResponse =
       await this.configurationManagerService.getConfig(
-        this.config.cmUrl,
+        this.config.cmBackend,
         GOOGLE_AUTH_CONFIG_PATH,
         user,
         this.config.scopedJwtSecret,
@@ -963,7 +963,7 @@ export class UserAccountController {
   ) {
     const configManagerResponse =
       await this.configurationManagerService.getConfig(
-        this.config.cmUrl,
+        this.config.cmBackend,
         MICROSOFT_AUTH_CONFIG_PATH,
         user,
         this.config.scopedJwtSecret,
@@ -987,7 +987,7 @@ export class UserAccountController {
   ) {
     const configManagerResponse =
       await this.configurationManagerService.getConfig(
-        this.config.cmUrl,
+        this.config.cmBackend,
         AZURE_AD_AUTH_CONFIG_PATH,
         user,
         this.config.scopedJwtSecret,
@@ -1088,7 +1088,7 @@ export class UserAccountController {
         if (allowedMethods.includes(AuthMethodType.GOOGLE)) {
           const configManagerResponse =
             await this.configurationManagerService.getConfig(
-              this.config.cmUrl,
+              this.config.cmBackend,
               GOOGLE_AUTH_CONFIG_PATH,
               user,
               this.config.scopedJwtSecret,
@@ -1099,7 +1099,7 @@ export class UserAccountController {
         if (allowedMethods.includes(AuthMethodType.MICROSOFT)) {
           const configManagerResponse =
             await this.configurationManagerService.getConfig(
-              this.config.cmUrl,
+              this.config.cmBackend,
               MICROSOFT_AUTH_CONFIG_PATH,
               user,
               this.config.scopedJwtSecret,
@@ -1110,7 +1110,7 @@ export class UserAccountController {
         if (allowedMethods.includes(AuthMethodType.AZURE_AD)) {
           const configManagerResponse =
             await this.configurationManagerService.getConfig(
-              this.config.cmUrl,
+              this.config.cmBackend,
               AZURE_AD_AUTH_CONFIG_PATH,
               user,
               this.config.scopedJwtSecret,

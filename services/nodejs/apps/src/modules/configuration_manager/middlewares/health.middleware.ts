@@ -4,10 +4,10 @@ import Redis from 'ioredis';
 import { MongoClient } from 'mongodb';
 import { Database } from 'arangojs';
 import { AuthenticatedUserRequest } from '../../../libs/middlewares/types';
-import { QdrantClient } from '@qdrant/js-client-rest';
 import net from 'net';
 import { BadRequestError } from '../../../libs/errors/http.errors';
 import { Logger } from '../../../libs/services/logger.service';
+import axios from 'axios';
 
 const logger = Logger.getInstance({
   service: 'Health Middleware',
@@ -158,52 +158,61 @@ export const checkQdrantHealth = async (
   next: NextFunction,
 ) => {
   try {
-    let { host, grpcPort, apiKey } = req.body;
+    let { port, host, apiKey } = req.body;
 
-    // ✅ Validate required fields
-    if (!host || !grpcPort) {
-      throw new BadRequestError("Missing 'host' or 'grpcPort' in request.");
+    if (!host || !port) {
+      throw new BadRequestError('Missing host and port');
     }
 
-    // ✅ Ensure grpcPort is a valid number
-    if (isNaN(grpcPort) || Number(grpcPort) <= 0) {
+    port = Number(port);
+    if (isNaN(port) || port <= 0) {
       throw new BadRequestError(
-        `Invalid grpcPort: ${grpcPort}. Expected a valid port number.`,
+        `Invalid port: ${port}. Expected a valid port number.`,
       );
     }
-
-    grpcPort = String(grpcPort); // Convert to string if necessary
 
     // ✅ Check if the host is localhost (no API key needed)
     const isLocal = host.includes('localhost') || host === '127.0.0.1';
 
     if (isLocal && apiKey) {
       logger.warn("API key provided for localhost, but it's not required.");
-      res.setHeader('warning', 'localhost does not require an api key');
+      res.setHeader('warning', 'localhost does not require an API key');
       apiKey = undefined; // Remove API key if localhost
     }
 
     // ✅ Ensure proper protocol
     const protocol = isLocal ? 'http' : 'https';
-    const url = `${protocol}://${host}:${grpcPort}`;
+    const httpUrl = `${protocol}://${host}:${port}/healthz`;
 
-    logger.info(`🔍 Checking Qdrant health at: ${url}`);
-
-    // ✅ Initialize Qdrant client with/without API key
-    const qdrantConfig: { url: string; apiKey?: string } = { url };
-    if (!isLocal && apiKey) {
-      qdrantConfig.apiKey = apiKey;
+    logger.info(`🔍 Checking Qdrant health at: ${httpUrl} (HTTP) `);
+    try {
+      const httpResponse = await axios.get(httpUrl);
+      if (httpResponse.status !== 200) {
+        throw new BadRequestError('Qdrant HTTP health check failed');
+      }
+    } catch (axiosError: any) {
+      if (axiosError.code === 'ECONNREFUSED') {
+        throw new BadRequestError(
+          `Cannot connect to Qdrant at ${httpUrl}. Connection refused.`,
+        );
+      } else if (axiosError.code === 'ENOTFOUND') {
+        throw new BadRequestError(
+          `Invalid host: ${host}. Could not resolve hostname.`,
+        );
+      } else if (axiosError.message.includes('Parse Error: Expected HTTP/')) {
+        throw new BadRequestError(
+          `Invalid response from ${httpUrl}. Ensure the port is correct and the service is running.`,
+        );
+      } else {
+        throw new BadRequestError(
+          `Qdrant request failed: ${axiosError.message}`,
+        );
+      }
     }
 
-    const qdrant = new QdrantClient(qdrantConfig);
-
-    // ✅ Test connection by listing collections
-    await qdrant.getCollections();
-
-    logger.info('✅ Qdrant is active and reachable.');
+    logger.info('✅ Qdrant is active and reachable via both HTTP.');
     next();
   } catch (error) {
-    logger.error('❌ Qdrant connection failed:', error);
     next(error);
   }
 };
@@ -230,14 +239,40 @@ export const checkMongoHealth = async (
     const db = client.db(dbName);
     const admin = db.admin();
     const status = await admin.command({ ping: 1 });
-
     if (status.ok !== 1) {
       throw new BadRequestError('Database is not responding');
     }
     await client.close();
     next();
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    if (
+      error.message.includes('Authentication failed') ||
+      error.message.includes('bad auth')
+    ) {
+      return next(
+        new BadRequestError(
+          'MongoDB authentication failed. Check your uri and password.',
+        ),
+      );
+    } else if (error.message.includes('ECONNREFUSED')) {
+      return next(
+        new BadRequestError(
+          'Could not connect to MongoDB. Ensure the server is running and the URI is correct.',
+        ),
+      );
+    } else if (error.message.includes('ENOTFOUND')) {
+      return next(
+        new BadRequestError(
+          'Invalid MongoDB URI. Hostname could not be resolved.',
+        ),
+      );
+    } else {
+      return next(
+        new BadRequestError(`MongoDB connection error: ${error.message}`),
+      );
+    }
+  } finally {
+    await client.close().catch(() => {}); // Ensure client closes even if an error occurs
   }
 };
 
@@ -247,15 +282,43 @@ export const checkArangoHealth = async (
   _res: Response,
   next: NextFunction,
 ) => {
-  const { uri, username, password } = req.body;
-  const arangoDB = new Database({ url: uri, timeout: 2000 });
+  const { url, username, password } = req.body;
+  const arangoDB = new Database({ url, timeout: 2000 });
   if (username && password) {
     arangoDB.useBasicAuth(username, password);
   }
   try {
     await arangoDB.exists();
     next();
-  } catch (error) {
-    next(error);
+  } catch (error: any) {
+    if (error.message.includes('Fetch failed')) {
+      return next(
+        new BadRequestError(
+          `Failed to connect to ArangoDB at ${url}. Ensure the server is running and accessible.`,
+        ),
+      );
+    } else if (error.message.includes('401')) {
+      return next(
+        new BadRequestError(
+          'ArangoDB authentication failed. Check your username and password.',
+        ),
+      );
+    } else if (error.message.includes('ECONNREFUSED')) {
+      return next(
+        new BadRequestError(
+          `Connection refused. Ensure ArangoDB is running at ${url}.`,
+        ),
+      );
+    } else if (error.message.includes('ENOTFOUND')) {
+      return next(
+        new BadRequestError(
+          `Invalid ArangoDB URL: ${url}. Hostname could not be resolved.`,
+        ),
+      );
+    } else {
+      return next(
+        new BadRequestError(`ArangoDB connection error: ${error.message}`),
+      );
+    }
   }
 };

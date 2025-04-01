@@ -7,7 +7,7 @@ import {
 } from '../../../libs/middlewares/types';
 import { Response, NextFunction } from 'express';
 import { KeyValueStoreService } from '../../../libs/services/keyValueStore.service';
-import { storageEtcdPaths } from '../constants/constants';
+import { endpoint, storageEtcdPaths } from '../constants/constants';
 import {
   AzureBlobStorageConfig,
   LocalStorageConfig,
@@ -73,15 +73,14 @@ export class StorageController {
     if (storageConfig != null) {
       return storageConfig;
     }
-    const endpoint = await this.getOrSetDefault(
-      keyValueStoreService,
-      storageEtcdPaths.endpoint,
-      defaultConfig.endpoint,
-    );
+    const url = (await keyValueStoreService.get<string>(endpoint)) || '{}';
+
+    const cmUrl = JSON.parse(url).cm.endpoint || defaultConfig.endpoint;
+
     const token = req.headers.authorization?.split(' ')[1];
     const configurationManagerServiceCommand =
       new ConfigurationManagerServiceCommand({
-        uri: `${endpoint}/api/v1/configurationManager/storageConfig`,
+        uri: `${cmUrl}/api/v1/configurationManager/storageConfig`,
         method: HttpMethod.GET,
         headers: {
           'Content-Type': 'application/json',
@@ -148,8 +147,8 @@ export class StorageController {
   }
 
   async watchStorageType(keyValueStoreService: KeyValueStoreService) {
-    await keyValueStoreService.watchKey(storageEtcdPaths.storageType, () => {
-      this.logger.debug('storageType changed');
+    await keyValueStoreService.watchKey(storageEtcdPaths, () => {
+      this.logger.debug('storage Config changed');
       storageConfig = null;
     });
   }
@@ -185,9 +184,9 @@ export class StorageController {
   ): Promise<void> {
     try {
       const adapter = await this.initializeStorageAdapter(req);
-      const storageType = await this.keyValueStoreService.get<string>(
-        storageEtcdPaths.storageType,
-      );
+      const storageConfig =
+        (await this.keyValueStoreService.get<string>(storageEtcdPaths)) || '{}';
+      const { storageType } = JSON.parse(storageConfig);
       if (!isValidStorageVendor(storageType ?? '')) {
         throw new BadRequestError(`Invalid storage type: ${storageType}`);
       }
@@ -236,9 +235,9 @@ export class StorageController {
         );
       }
 
-      const storageType = await this.keyValueStoreService.get<string>(
-        storageEtcdPaths.storageType,
-      );
+      const storageConfig =
+        (await this.keyValueStoreService.get<string>(storageEtcdPaths)) || '{}';
+      const { storageType } = JSON.parse(storageConfig);
       const storageVendor = getStorageVendor(storageType ?? '');
       const documentInfo: Partial<Document> = {
         documentName,
@@ -354,9 +353,10 @@ export class StorageController {
       ) {
         throw new BadRequestError("This version doesn't exist");
       }
-      const storageVendorInETCD = await this.keyValueStoreService.get<string>(
-        storageEtcdPaths.storageType,
-      );
+      const storageConfig =
+        (await this.keyValueStoreService.get<string>(storageEtcdPaths)) || '{}';
+      const { storageType } = JSON.parse(storageConfig);
+      const storageVendorInETCD = storageType;
 
       // TODO: fix this usage
       if (document.storageVendor !== storageVendorInETCD) {
@@ -532,9 +532,10 @@ export class StorageController {
             response.data ?? 'Some error occurred while uploading next version',
           );
         }
-        const storageType = await this.keyValueStoreService.get<string>(
-          storageEtcdPaths.storageType,
-        );
+        const storageConfig =
+          (await this.keyValueStoreService.get<string>(storageEtcdPaths)) ||
+          '{}';
+        const { storageType } = JSON.parse(storageConfig);
         if (!isValidStorageVendor(storageType ?? '')) {
           throw new BadRequestError(`Invalid storage type: ${storageType}`);
         }
@@ -703,9 +704,9 @@ export class StorageController {
         );
       }
 
-      const storageType = await this.keyValueStoreService.get<string>(
-        storageEtcdPaths.storageType,
-      );
+      const storageConfig =
+        (await this.keyValueStoreService.get<string>(storageEtcdPaths)) || '{}';
+      const { storageType } = JSON.parse(storageConfig);
       if (!isValidStorageVendor(storageType ?? '')) {
         throw new BadRequestError(`Invalid storage type: ${storageType}`);
       }

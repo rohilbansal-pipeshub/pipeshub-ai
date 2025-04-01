@@ -103,7 +103,7 @@ export function createConnectorRouter(container: Container) {
       try {
         const response = await getGoogleWorkspaceBusinessCredentials(
           req,
-          config.cmUrl,
+          config.cmBackend,
           config.scopedJwtSecret,
         );
         if (response.statusCode !== 200) {
@@ -146,7 +146,7 @@ export function createConnectorRouter(container: Container) {
       try {
         const response = await setGoogleWorkspaceBusinessCredentials(
           req,
-          config.cmUrl,
+          config.cmBackend,
           config.scopedJwtSecret,
         );
         if (response.statusCode !== 200) {
@@ -171,7 +171,7 @@ export function createConnectorRouter(container: Container) {
       try {
         const response = await deleteGoogleWorkspaceCredentials(
           req,
-          config.cmUrl,
+          config.cmBackend,
           config.scopedJwtSecret,
         );
         if (response.statusCode !== 200) {
@@ -199,7 +199,7 @@ export function createConnectorRouter(container: Container) {
       try {
         const response = await getGoogleWorkspaceBusinessCredentials(
           req,
-          config.cmUrl,
+          config.cmBackend,
           config.scopedJwtSecret,
         );
         if (response.statusCode !== 200) {
@@ -280,7 +280,7 @@ export function createConnectorRouter(container: Container) {
           case googleWorkspaceTypes.INDIVIDUAL.toLowerCase():
             response = await getGoogleWorkspaceConfig(
               req,
-              config.cmUrl,
+              config.cmBackend,
               config.scopedJwtSecret,
             );
             if (response.statusCode !== 200) {
@@ -307,7 +307,7 @@ export function createConnectorRouter(container: Container) {
           case googleWorkspaceTypes.BUSINESS.toLowerCase():
             response = await getGoogleWorkspaceBusinessCredentials(
               req,
-              config.cmUrl,
+              config.cmBackend,
               config.scopedJwtSecret,
             );
             if (response.statusCode !== 200) {
@@ -353,7 +353,7 @@ export function createConnectorRouter(container: Container) {
       try {
         let response = await setGoogleWorkspaceConfig(
           req,
-          config.cmUrl,
+          config.cmBackend,
           config.scopedJwtSecret,
         );
 
@@ -464,7 +464,7 @@ export function createConnectorRouter(container: Container) {
               orgId: req.user.orgId,
               appGroup: connector.name,
               appGroupId: connector._id,
-              credentialsRoute: `${config.cmUrl}/${GOOGLE_WORKSPACE_BUSINESS_CREDENTIALS_PATH}`,
+              credentialsRoute: `${config.cmBackend}/${GOOGLE_WORKSPACE_BUSINESS_CREDENTIALS_PATH}`,
               apps: [
                 GoogleWorkspaceApp.Drive,
                 GoogleWorkspaceApp.Gmail,
@@ -502,7 +502,7 @@ export function createConnectorRouter(container: Container) {
               orgId: req.user.orgId,
               appGroup: connector.name,
               appGroupId: connector._id,
-              credentialsRoute: `${config.cmUrl}/${GOOGLE_WORKSPACE_BUSINESS_CREDENTIALS_PATH}`,
+              credentialsRoute: `${config.cmBackend}/${GOOGLE_WORKSPACE_BUSINESS_CREDENTIALS_PATH}`,
               apps: [
                 GoogleWorkspaceApp.Drive,
                 GoogleWorkspaceApp.Gmail,
@@ -542,7 +542,7 @@ export function createConnectorRouter(container: Container) {
         }
         let response = await getGoogleWorkspaceConfig(
           req,
-          config.cmUrl,
+          config.cmBackend,
           config.scopedJwtSecret,
         );
 
@@ -583,7 +583,7 @@ export function createConnectorRouter(container: Container) {
           : undefined;
         response = await setGoogleWorkspaceIndividualCredentials(
           req,
-          config.cmUrl,
+          config.cmBackend,
           config.scopedJwtSecret,
           data.access_token,
           data.refresh_token,
@@ -630,8 +630,8 @@ export function createConnectorRouter(container: Container) {
               orgId: req.user.orgId,
               appGroup: connector.name,
               appGroupId: connector._id,
-              credentialsRoute: `${config.cmUrl}/${GOOGLE_WORKSPACE_INDIVIDUAL_CREDENTIALS_PATH}`,
-              refreshTokenRoute: `${config.cmUrl}/${REFRESH_TOKEN_PATH}`,
+              credentialsRoute: `${config.cmBackend}/${GOOGLE_WORKSPACE_INDIVIDUAL_CREDENTIALS_PATH}`,
+              refreshTokenRoute: `${config.cmBackend}/${REFRESH_TOKEN_PATH}`,
               apps: enabledApps,
               syncAction: 'immediate',
             } as AppEnabledEvent,
@@ -665,8 +665,8 @@ export function createConnectorRouter(container: Container) {
               orgId: req.user.orgId,
               appGroup: connector.name,
               appGroupId: connector._id,
-              credentialsRoute: `${config.cmUrl}/${GOOGLE_WORKSPACE_INDIVIDUAL_CREDENTIALS_PATH}`,
-              refreshTokenRoute: `${config.cmUrl}/${REFRESH_TOKEN_PATH}`,
+              credentialsRoute: `${config.cmBackend}/${GOOGLE_WORKSPACE_INDIVIDUAL_CREDENTIALS_PATH}`,
+              refreshTokenRoute: `${config.cmBackend}/${REFRESH_TOKEN_PATH}`,
               apps: [
                 GoogleWorkspaceApp.Drive,
                 GoogleWorkspaceApp.Gmail,
@@ -698,7 +698,7 @@ export function createConnectorRouter(container: Container) {
     ) => {
       const refreshTokenCommandResponse = await getRefreshTokenCredentials(
         req,
-        config.cmUrl,
+        config.cmBackend,
       );
       if (refreshTokenCommandResponse.statusCode !== 200) {
         throw new InternalServerError(
@@ -707,7 +707,7 @@ export function createConnectorRouter(container: Container) {
         );
       }
       try {
-        let response = await getRefreshTokenConfig(req, config.cmUrl);
+        let response = await getRefreshTokenConfig(req, config.cmBackend);
 
         if (response.statusCode !== 200) {
           throw new InternalServerError('Error getting config', response?.data);
@@ -733,7 +733,7 @@ export function createConnectorRouter(container: Container) {
         const accessTokenCommandResponse = (response =
           await setRefreshTokenCredentials(
             req,
-            config.cmUrl,
+            config.cmBackend,
             data.access_token,
             refreshTokenCommandResponse?.data.refresh_token,
             data.expires_in * 1000 + Date.now(),

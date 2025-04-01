@@ -255,6 +255,8 @@ class ConfigurationService:
                     else:
                         decrypted_value = encrypted_value 
 
+                    if isinstance(decrypted_value, dict):
+                        return decrypted_value
                     return json.loads(decrypted_value)
                 except Exception as e:
                     logger.error(f"❌ Failed to decrypt value for key {full_key}: {str(e)}")

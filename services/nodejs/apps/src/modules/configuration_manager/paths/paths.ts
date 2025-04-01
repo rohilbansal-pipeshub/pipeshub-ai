@@ -1,60 +1,20 @@
-// Key Value Store Paths Layout
-
-/**
- 
- /config
- ├─ /common
- │   ├─ /logging        (common logging configs)
- │   ├─ /auth           (common auth configs)
- │   └─ /feature-flags  (shared feature toggles)
- ├─ /serviceA
- │   ├─ /db
- │   │   ├─ host
- │   │   └─ port
- │   └─ /cache
- └─ /serviceB
-     ├─ /api
-     │   ├─ endpoint
-     │   └─ timeout
-     └─ /queue
-         ├─ host
-         └─ retry-limit
- */
-
-/**
-/config
- └─ /dev
-     ├─ /common
-     └─ /serviceA
- └─ /staging
-     ├─ /common
-     └─ /serviceA
- └─ /prod
-     ├─ /common
-     └─ /serviceA
-*/
 export const configPaths = {
-  storageService: {
-    storageType: '/services/storage_service/storage_type',
-    s3: '/services/storage_service/s3',
-    local: '/services/storage_service/local',
-    azureBlob: '/services/storage_service/azureBlob',
-    endpoint: '/services/storage_service/endpoint',
-  },
+  storageService: '/services/storage',
   connectors: {
     googleWorkspace: {
-      base: '/connectors/google_workspace/',
+      base: '/services/connectors/googleWorkspace/',
       credentials: {
-        individual: '/connectors/google_workspace/credentials/individual',
-        business: '/connectors/google_workspace/credentials/business',
+        individual:
+          '/services/connectors/googleWorkspace/credentials/individual',
+        business: '/services/connectors/googleWorkspace/credentials/business',
       },
-      config: '/connectors/google_workspace/oauth/config',
+      config: '/services/connectors/googleWorkspace/oauth/config',
     },
   },
   smtp: '/services/smtp',
   auth: {
     base: '/services/auth',
-    azureAD: '/services/auth/azure_ad',
+    azureAD: '/services/auth/azureAd',
     google: '/services/auth/google',
     okta: '/services/auth/okta',
     microsoft: '/services/auth/microsoft',
@@ -72,25 +32,19 @@ export const configPaths = {
   broker: {
     kafka: '/services/kafka',
   },
-  aiBackend: '/services/aiBackend',
+  aiBackend: '/services/queryBackend',
+  endpoint: '/services/endpoints',
   url: {
-    nodeCommon: {
-      privateEndpoint: '/services/nodejs/common/endpoint',
-    },
-    frontend: {
-      publicEndpoint: '/services/frontend/public-endpoint',
-    },
-    indexing: {
-      publicEndpoint: '/services/indexing/public-endpoint',
-      privateEndpoint: '/services/indexing/endpoint',
-    },
-    connector: {
-      publicEndpoint: '/services/connector/public-endpoint',
-      privateEndpoint: '/services/connector/endpoint',
-    },
-    query: {
-      publicEndpoint: '/services/query/public-endpoint',
-      privateEndpoint: '/services/query/endpoint',
-    },
+    auth: '/services/nodejs/auth',
+    storage: 'services/nodejs/storage',
+    communication: '/services/nodejs/communication',
+    iam: '/services/nodejs/iam',
+    kb: '/services/nodejs/kb',
+    es: '/services/nodejs/es',
+    cm: '/services/nodejs/cm',
+    frontend: '/services/frontend',
+    indexing: '/services/indexing',
+    connector: '/services/connector',
+    query: '/services/query',
   },
 };

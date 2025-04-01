@@ -34,12 +34,14 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
     const theme = useTheme();
     const [formData, setFormData] = useState({
       host: '',
+      port: '',
       grpcPort: '',
       apiKey: '',
     });
 
     const [errors, setErrors] = useState({
       host: '',
+      port: '',
       grpcPort: '',
       apiKey: '',
     });
@@ -50,6 +52,7 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
     const [isEditing, setIsEditing] = useState(false);
     const [originalData, setOriginalData] = useState({
       host: '',
+      port: '',
       grpcPort: '',
       apiKey: '',
     });
@@ -68,6 +71,7 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
 
           const data = {
             host: config?.host || '',
+            port: config?.port?.toString() || '',
             grpcPort: config?.grpcPort?.toString() || '',
             apiKey: config?.apiKey || '',
           };
@@ -88,14 +92,16 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
     useEffect(() => {
       const isValid =
         formData.host.trim() !== '' &&
-        formData.grpcPort.trim() !== '' &&
+        formData.port.trim() !== '' &&
         !errors.host &&
+        !errors.port &&
         !errors.grpcPort &&
         !errors.apiKey;
 
       // Only notify about validation if in edit mode and form has changes
       const hasChanges =
         formData.host !== originalData.host ||
+        formData.port !== originalData.port ||
         formData.grpcPort !== originalData.grpcPort ||
         formData.apiKey !== originalData.apiKey;
 
@@ -122,6 +128,7 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
         setFormData(originalData);
         setErrors({
           host: '',
+          port: '',
           grpcPort: '',
           apiKey: '',
         });
@@ -133,11 +140,19 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
     const validateField = (name: string, value: string) => {
       let error = '';
 
-      if ((name === 'host' || name === 'grpcPort') && value.trim() === '') {
+      if ((name === 'host' || name === 'port') && value.trim() === '') {
         error = 'This field is required';
-      } else if (name === 'grpcPort' && !/^\d+$/.test(value)) {
+      } else if (
+        (name === 'port' || name === 'grpcPort') &&
+        value.trim() !== '' &&
+        !/^\d+$/.test(value)
+      ) {
         error = 'Port must be a number';
-      } else if (name === 'grpcPort' && (parseInt(value, 10) <= 0 || parseInt(value, 10) > 65535)) {
+      } else if (
+        (name === 'port' || name === 'grpcPort') &&
+        value.trim() !== '' &&
+        (parseInt(value, 10) <= 0 || parseInt(value, 10) > 65535)
+      ) {
         error = 'Port must be between 1 and 65535';
       } else if (name === 'apiKey' && value.trim() !== '' && value.length < 16) {
         error = 'API key should be at least 16 characters';
@@ -157,7 +172,8 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
       try {
         const response = await updateQdrantConfig({
           host: formData.host,
-          grpcPort: parseInt(formData.grpcPort, 10),
+          port: parseInt(formData.port, 10),
+          ...(formData.grpcPort && { grpcPort: parseInt(formData.grpcPort, 10) }),
           apiKey: formData.apiKey,
         });
 
@@ -165,6 +181,7 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
         // Update original data after successful save
         setOriginalData({
           host: formData.host,
+          port: formData.port,
           grpcPort: formData.grpcPort,
           apiKey: formData.apiKey,
         });
@@ -224,8 +241,8 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
           />
           <Box>
             <Typography variant="body2" color="text.secondary">
-              Qdrant connection details. Enter the host, gRPC port, and optional API key for
-              connecting to the Qdrant service.
+              Qdrant connection details. Enter the host, HTTP port, optional gRPC port, and optional
+              API key for connecting to the Qdrant service.
             </Typography>
           </Box>
         </Box>
@@ -274,13 +291,13 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="gRPC Port"
-              name="grpcPort"
-              value={formData.grpcPort}
+              label="HTTP Port"
+              name="port"
+              value={formData.port}
               onChange={handleChange}
-              placeholder="50051"
-              error={Boolean(errors.grpcPort)}
-              helperText={errors.grpcPort || 'Port for gRPC communication'}
+              placeholder="6333"
+              error={Boolean(errors.port)}
+              helperText={errors.port || 'Port for HTTP communication'}
               required
               size="small"
               type="number"
@@ -301,7 +318,36 @@ const QdrantConfigForm = forwardRef<QdrantConfigFormRef, QdrantConfigFormProps>(
               }}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="gRPC Port (optional)"
+              name="grpcPort"
+              value={formData.grpcPort}
+              onChange={handleChange}
+              placeholder="50051"
+              error={Boolean(errors.grpcPort)}
+              helperText={errors.grpcPort || 'Port for gRPC communication (if needed)'}
+              size="small"
+              type="number"
+              disabled={!isEditing}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Iconify icon="mdi:pound" width={18} height={18} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    borderColor: alpha(theme.palette.text.primary, 0.15),
+                  },
+                },
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
             <TextField
               fullWidth
               label="API Key (optional)"

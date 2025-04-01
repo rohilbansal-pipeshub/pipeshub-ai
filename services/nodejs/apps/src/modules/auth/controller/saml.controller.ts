@@ -68,7 +68,7 @@ export class SamlController {
       new (SamlStrategy as any)(
         {
           entryPoint: samlEntryPoint,
-          callbackUrl: `${this.config.authUrl}/${samlSsoCallbackUrl}`,
+          callbackUrl: `${this.config.authBackend}/${samlSsoCallbackUrl}`,
           cert: samlCertificate,
           passReqToCallback: true,
           issuer: 'your-issuer',
@@ -134,7 +134,7 @@ export class SamlController {
       }
       let configurationManagerCommandOptions: ConfigurationManagerCommandOptions =
         {
-          uri: `${this.config.cmUrl}/${samlSsoConfigUrl}`,
+          uri: `${this.config.cmBackend}/${samlSsoConfigUrl}`,
           method: HttpMethod.GET,
           headers: {
             Authorization: `Bearer ${await generateFetchConfigAuthToken(user, this.config.scopedJwtSecret)}`,

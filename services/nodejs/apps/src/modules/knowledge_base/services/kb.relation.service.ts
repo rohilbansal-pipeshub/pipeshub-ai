@@ -27,7 +27,7 @@ import {
   UpdateRecordEvent,
 } from './records_events.service';
 import { KeyValueStoreService } from '../../../libs/services/keyValueStore.service';
-import { storageEtcdPaths } from '../../storage/constants/constants';
+import { endpoint } from '../../storage/constants/constants';
 import { DefaultStorageConfig } from '../../tokens_manager/services/cm.service';
 
 const logger = Logger.getInstance({
@@ -151,9 +151,11 @@ export class RecordRelationService {
     fileRecord?: IFileRecordDocument,
   ): Promise<NewRecordEvent> {
     // Generate signed URL route based on record information
+
+    const url = (await keyValueStoreService.get<string>(endpoint)) || '{}';
+
     const storageUrl =
-      (await keyValueStoreService.get(storageEtcdPaths.endpoint)) ||
-      this.defaultConfig.endpoint;
+      JSON.parse(url).storage.endpoint || this.defaultConfig.endpoint;
     const signedUrlRoute = `${storageUrl}/api/v1/document/internal/${record.externalRecordId}/download`;
 
     // Determine the appropriate extension by prioritizing different sources
@@ -191,9 +193,10 @@ export class RecordRelationService {
     keyValueStoreService: KeyValueStoreService,
   ): Promise<UpdateRecordEvent> {
     // Generate signed URL route based on record information
+    const url = (await keyValueStoreService.get<string>(endpoint)) || '{}';
+
     const storageUrl =
-      (await keyValueStoreService.get(storageEtcdPaths.endpoint)) ||
-      this.defaultConfig.endpoint;
+      JSON.parse(url).storage.endpoint || this.defaultConfig.endpoint;
     const signedUrlRoute = `${storageUrl}/api/v1/document/internal/${record.externalRecordId}/download`;
 
     return {

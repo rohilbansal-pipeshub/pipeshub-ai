@@ -12,9 +12,14 @@ export interface AppConfig {
   communicationBackend: string;
   frontendUrl: string;
   iamBackend: string;
-  authUrl: string;
-  cmUrl: string;
+  authBackend: string;
+  cmBackend: string;
+  kbBackend: string;
+  esBackend: string;
+  storageBackend: string;
   aiBackend: string;
+  connectorBackend: string;
+  indexingBackend: string;
   kafka: {
     brokers: string[];
     sasl?: {
@@ -35,6 +40,7 @@ export interface AppConfig {
   };
 
   qdrant: {
+    port: number;
     apiKey: string;
     host: string;
     grpcPort: number;
@@ -67,7 +73,6 @@ export interface AppConfig {
 
 export const loadAppConfig = async (): Promise<AppConfig> => {
   const configService = ConfigService.getInstance();
-  const commonBackendUrl = await configService.getCommonBackendUrl();
 
   return {
     jwtSecret: configService.getJwtSecret(),
@@ -79,12 +84,16 @@ export const loadAppConfig = async (): Promise<AppConfig> => {
       algorithm: 'aes-256-gcm',
     },
     frontendUrl: await configService.getFrontendUrl(),
-
-    communicationBackend: commonBackendUrl,
-    iamBackend: commonBackendUrl,
-    authUrl: commonBackendUrl,
-    cmUrl: commonBackendUrl,
+    communicationBackend: await configService.getCommunicationBackendUrl(),
+    kbBackend: await configService.getKbBackendUrl(),
+    esBackend: await configService.getEsBackendUrl(),
+    iamBackend: await configService.getIamBackendUrl(),
+    authBackend: await configService.getAuthBackendUrl(),
+    cmBackend: await configService.getCmBackendUrl(),
+    connectorBackend: await configService.getConnectorUrl(),
+    indexingBackend: await configService.getIndexingUrl(),
     aiBackend: await configService.getAiBackendUrl(),
+    storageBackend: await configService.getStorageBackendUrl(),
     kafka: await configService.getKafkaConfig(),
     redis: await configService.getRedisConfig(),
     arango: await configService.getArangoConfig(),

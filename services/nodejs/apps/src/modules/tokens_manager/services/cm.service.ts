@@ -34,6 +34,7 @@ export interface MongoConfig {
 }
 
 export interface QdrantConfig {
+  port: number;
   apiKey: string;
   host: string;
   grpcPort: number;
@@ -180,8 +181,9 @@ export class ConfigService {
   public async getQdrantConfig(): Promise<QdrantConfig> {
     return this.getEncryptedConfig<QdrantConfig>(configPaths.db.qdrant, {
       apiKey: process.env.QDRANT_API_KEY!,
-      host: process.env.QDRANT_HOST!,
-      grpcPort: parseInt(process.env.QDRANT_GRPC_PORT || '6334', 10),
+      host: process.env.QDRANT_HOST || 'localhost',
+      port: parseInt(process.env.QDRANT_PORT || '6333', 10),
+      grpcPort: parseInt(process.env.QDRANT_GRPC_PORT!, 10),
     });
   }
 
@@ -205,70 +207,300 @@ export class ConfigService {
   }
 
   // Get Common Backend URL
-  public async getCommonBackendUrl(): Promise<string> {
-    let url = await this.keyValueStoreService.get<string>(
-      configPaths.url.nodeCommon.privateEndpoint,
+
+  public async getAuthBackendUrl(): Promise<string> {
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.auth = {
+      ...parsedUrl.auth,
+      endpoint:
+        parsedUrl.auth?.endpoint ||
+        `http://localhost:${process.env.PORT ?? 3000}`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
     );
-    if (url === null) {
-      const port = process.env.PORT ?? 3000;
-      url = `http://localhost:${port}`;
-      await this.keyValueStoreService.set<string>(
-        configPaths.url.nodeCommon.privateEndpoint,
-        url,
-      );
-    }
-    return url;
+
+    return parsedUrl.auth.endpoint;
+  }
+
+  public async getCommunicationBackendUrl(): Promise<string> {
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.communication = {
+      ...parsedUrl.communication,
+      endpoint:
+        parsedUrl.communication?.endpoint ||
+        `http://localhost:${process.env.PORT ?? 3000}`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
+    );
+
+    return parsedUrl.communication.endpoint;
+  }
+
+  public async getKbBackendUrl(): Promise<string> {
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.kb = {
+      ...parsedUrl.kb,
+      endpoint:
+        parsedUrl.kb?.endpoint ||
+        `http://localhost:${process.env.PORT ?? 3000}`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
+    );
+
+    return parsedUrl.kb.endpoint;
+  }
+
+  public async getEsBackendUrl(): Promise<string> {
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.es = {
+      ...parsedUrl.es,
+      endpoint:
+        parsedUrl.es?.endpoint ||
+        `http://localhost:${process.env.PORT ?? 3000}`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
+    );
+
+    return parsedUrl.es.endpoint;
+  }
+
+  public async getCmBackendUrl(): Promise<string> {
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.cm = {
+      ...parsedUrl.cm,
+      endpoint:
+        parsedUrl.cm?.endpoint ||
+        `http://localhost:${process.env.PORT ?? 3000}`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
+    );
+
+    return parsedUrl.cm.endpoint;
+  }
+  public async getConnectorUrl(): Promise<string> {
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.connectors = {
+      ...parsedUrl.connectors,
+      endpoint: parsedUrl.connectors?.endpoint || process.env.CONNECTOR_BACKEND,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
+    );
+    return parsedUrl.connectors.endpoint;
+  }
+  public async getIndexingUrl(): Promise<string> {
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.indexing = {
+      ...parsedUrl.indexing,
+      endpoint: parsedUrl.indexing?.endpoint || process.env.INDEXING_BACKEND,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
+    );
+    return parsedUrl.indexing.endpoint;
+  }
+  public async getIamBackendUrl(): Promise<string> {
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.iam = {
+      ...parsedUrl.iam,
+      endpoint:
+        parsedUrl.iam?.endpoint ||
+        `http://localhost:${process.env.PORT ?? 3000}`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
+    );
+
+    return parsedUrl.iam.endpoint;
+  }
+  public async getStorageBackendUrl(): Promise<string> {
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.storage = {
+      ...parsedUrl.storage,
+      endpoint:
+        parsedUrl.storage?.endpoint ||
+        `http://localhost:${process.env.PORT ?? 3000}`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
+    );
+
+    return parsedUrl.storage.endpoint;
   }
 
   public async getFrontendUrl(): Promise<string> {
-    let url = await this.keyValueStoreService.get<string>(
-      configPaths.url.frontend.publicEndpoint,
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.frontend = {
+      ...parsedUrl.frontend,
+      publicEndpoint:
+        parsedUrl.frontend?.publicEndpoint ||
+        process.env.FRONTEND_PUBLIC_URL ||
+        `http://localhost:${process.env.PORT ?? 3000}`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
     );
-    if (url === null) {
-      const port = process.env.PORT || 3000;
-      url = process.env.FRONTEND_PUBLIC_URL || `http://localhost:${port}`;
-      await this.keyValueStoreService.set<string>(
-        configPaths.url.frontend.publicEndpoint,
-        url,
-      );
-    }
-    return url;
+
+    return parsedUrl.frontend.publicEndpoint;
   }
 
   public async getAiBackendUrl(): Promise<string> {
-    let url = await this.keyValueStoreService.get<string>(
-      configPaths.aiBackend,
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.queryBackend = {
+      ...parsedUrl.queryBackend,
+      endpoint:
+        parsedUrl.queryBackend?.endpoint ||
+        process.env.QUERY_BACKEND ||
+        `http://localhost:8000`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
     );
-    if (url === null) {
-      url = process.env.AI_BACKEND_URL ?? 'http://localhost:8000';
-      await this.keyValueStoreService.set<string>(configPaths.aiBackend, url);
-    }
-    return url;
+
+    return parsedUrl.queryBackend.endpoint;
   }
 
   public async getStorageConfig(): Promise<DefaultStorageConfig> {
-    let endpoint = await this.keyValueStoreService.get<string>(
-      configPaths.storageService.endpoint,
+    const url =
+      (await this.keyValueStoreService.get<string>(configPaths.endpoint)) ||
+      '{}';
+
+    let parsedUrl = JSON.parse(url);
+
+    // Preserve existing `auth` object if it exists, otherwise create a new one
+    parsedUrl.storage = {
+      ...parsedUrl.storage,
+      endpoint:
+        parsedUrl.storage?.endpoint ||
+        `http://localhost:${process.env.PORT ?? 3000}`,
+    };
+
+    // Save the updated object back to configPaths.endpoint
+    await this.keyValueStoreService.set<string>(
+      configPaths.endpoint,
+      JSON.stringify(parsedUrl),
     );
-    let storageType = await this.keyValueStoreService.get<string>(
-      configPaths.storageService.storageType,
-    );
-    if (endpoint === null) {
-      const port = process.env.PORT || 3000;
-      endpoint = `http://localhost:${port}`;
-      await this.keyValueStoreService.set<string>(
-        configPaths.storageService.endpoint,
-        endpoint,
-      );
-    }
-    if (storageType === null) {
+    let storageConfig =
+      (await this.keyValueStoreService.get<string>(
+        configPaths.storageService,
+      )) || '{}';
+
+    const parsedConfig = JSON.parse(storageConfig); // Parse JSON string
+    let storageType = parsedConfig.storageType;
+    if (!storageType) {
       storageType = 'local';
       await this.keyValueStoreService.set<string>(
-        configPaths.storageService.storageType,
-        storageType,
+        configPaths.storageService,
+        JSON.stringify({
+          storageType,
+        }),
       );
     }
-    return { storageType, endpoint };
+    return { storageType, endpoint: parsedUrl.storage.endpoint };
   }
 
   // Get JWT Secret

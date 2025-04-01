@@ -49,7 +49,6 @@ export const createStorageConfig =
       // Process configuration based on storage type
       switch (storageType.toLowerCase()) {
         case storageTypes.S3.toLowerCase(): {
-          const s3Path = configPaths.storageService.s3;
           const s3Config = {
             accessKeyId: config.s3AccessKeyId,
             secretAccessKey: config.s3SecretAccessKey,
@@ -60,69 +59,72 @@ export const createStorageConfig =
             configManagerConfig.algorithm,
             configManagerConfig.secretKey,
           ).encrypt(JSON.stringify(s3Config));
-          await keyValueStoreService.set<string>(s3Path, encryptedS3Config);
 
           await keyValueStoreService.set<string>(
-            configPaths.storageService.storageType,
-            storageTypes.S3,
+            configPaths.storageService,
+            JSON.stringify({
+              storageType: storageTypes.S3,
+              s3: encryptedS3Config,
+            }),
           );
 
           logger.info('S3 storage configuration saved successfully');
           break;
         }
 
-        case storageTypes.AZURE_BLOB.toLowerCase():
-          {
-            const azureBlobPath = configPaths.storageService.azureBlob;
-            if (config.azureBlobConnectionString) {
-              const encryptedAzureBlobConnectionString =
-                EncryptionService.getInstance(
-                  configManagerConfig.algorithm,
-                  configManagerConfig.secretKey,
-                ).encrypt(config.azureBlobConnectionString);
-              await keyValueStoreService.set<string>(
-                azureBlobPath,
-                encryptedAzureBlobConnectionString,
-              );
-            } else {
-              const azureBlobConfig = {
-                endpointProtocol: config.endpointProtocol || 'https',
-                accountName: config.accountName,
-                accountKey: config.accountKey,
-                endpointSuffix: config.endpointSuffix || 'core.windows.net',
-                containerName: config.containerName,
-              };
-              const encryptedAzureBlobConfig = EncryptionService.getInstance(
+        case storageTypes.AZURE_BLOB.toLowerCase(): {
+          if (config.azureBlobConnectionString) {
+            const encryptedAzureBlobConnectionString =
+              EncryptionService.getInstance(
                 configManagerConfig.algorithm,
                 configManagerConfig.secretKey,
-              ).encrypt(JSON.stringify(azureBlobConfig));
-              await keyValueStoreService.set<string>(
-                azureBlobPath,
-                encryptedAzureBlobConfig,
-              );
-            }
+              ).encrypt(config.azureBlobConnectionString);
+
             await keyValueStoreService.set<string>(
-              configPaths.storageService.storageType,
-              storageTypes.AZURE_BLOB,
+              configPaths.storageService,
+              JSON.stringify({
+                storageType: storageTypes.AZURE_BLOB,
+                azureBlob: encryptedAzureBlobConnectionString,
+              }),
+            );
+          } else {
+            const azureBlobConfig = {
+              endpointProtocol: config.endpointProtocol || 'https',
+              accountName: config.accountName,
+              accountKey: config.accountKey,
+              endpointSuffix: config.endpointSuffix || 'core.windows.net',
+              containerName: config.containerName,
+            };
+            const encryptedAzureBlobConfig = EncryptionService.getInstance(
+              configManagerConfig.algorithm,
+              configManagerConfig.secretKey,
+            ).encrypt(JSON.stringify(azureBlobConfig));
+
+            await keyValueStoreService.set<string>(
+              configPaths.storageService,
+              JSON.stringify({
+                storageType: storageTypes.AZURE_BLOB,
+                azureBlob: encryptedAzureBlobConfig,
+              }),
             );
           }
           logger.info('Azure Blob storage configuration saved successfully');
           break;
+        }
 
         case storageTypes.LOCAL.toLowerCase(): {
-          // Log and Continue
-          await keyValueStoreService.set<string>(
-            configPaths.storageService.storageType,
-            storageTypes.LOCAL,
-          );
           const localConfig = {
             mountName: config.mountName || 'PipesHub',
             baseUrl: config.baseUrl || defaultConfig.endpoint,
           };
           await keyValueStoreService.set<string>(
-            configPaths.storageService.local,
-            JSON.stringify(localConfig),
+            configPaths.storageService,
+            JSON.stringify({
+              storageType: storageTypes.LOCAL,
+              local: JSON.stringify(localConfig),
+            }),
           );
+
           logger.info('Local storage configuration saved successfully');
           break;
         }
@@ -143,20 +145,23 @@ export const getStorageConfig =
   (keyValueStoreService: KeyValueStoreService) =>
   async (_req: AuthenticatedUserRequest, res: Response, next: NextFunction) => {
     try {
-      const storageType =
-        (await keyValueStoreService.get<string>(
-          configPaths.storageService.storageType,
-        )) || process.env.STORAGE_TYPE;
+      const storageConfig =
+        (await keyValueStoreService.get<string>(configPaths.storageService)) ||
+        '{}';
+
+      const parsedConfig = JSON.parse(storageConfig); // Parse JSON string
+
+      const storageType = parsedConfig.storageType;
 
       if (!storageType) {
         throw new BadRequestError('Storage type not found');
       }
 
       const configManagerConfig = loadConfigurationManagerConfig();
+
       if (storageType === storageTypes.S3) {
-        const encryptedS3Config = await keyValueStoreService.get<string>(
-          configPaths.storageService.s3,
-        );
+        const encryptedS3Config = parsedConfig.s3;
+
         if (encryptedS3Config) {
           const s3Config = EncryptionService.getInstance(
             configManagerConfig.algorithm,
@@ -182,9 +187,7 @@ export const getStorageConfig =
       }
 
       if (storageType === storageTypes.AZURE_BLOB) {
-        const encryptedAzureBlobConfig = await keyValueStoreService.get<string>(
-          configPaths.storageService.azureBlob,
-        );
+        const encryptedAzureBlobConfig = parsedConfig.azureBlob;
         if (encryptedAzureBlobConfig) {
           const azureBlobConfig = JSON.parse(
             EncryptionService.getInstance(
@@ -218,9 +221,7 @@ export const getStorageConfig =
       }
 
       if (storageType === storageTypes.LOCAL) {
-        const localConfig = await keyValueStoreService.get<string>(
-          configPaths.storageService.local,
-        );
+        const localConfig = parsedConfig.local;
         res
           .status(200)
           .json(JSON.parse(localConfig || '{}'))
@@ -478,12 +479,12 @@ export const createArangoDbConfig =
   (keyValueStoreService: KeyValueStoreService) =>
   async (req: AuthenticatedUserRequest, res: Response, next: NextFunction) => {
     try {
-      const { uri, username, password, db } = req.body;
+      const { url, username, password, db } = req.body;
       const configManagerConfig = loadConfigurationManagerConfig();
       const encryptedArangoDBConfig = EncryptionService.getInstance(
         configManagerConfig.algorithm,
         configManagerConfig.secretKey,
-      ).encrypt(JSON.stringify({ uri, username, password, db }));
+      ).encrypt(JSON.stringify({ url, username, password, db }));
       await keyValueStoreService.set<string>(
         configPaths.db.arangodb,
         encryptedArangoDBConfig,
@@ -1001,7 +1002,7 @@ export const createAIModelsConfig =
         eventType: EventType.LLMConfiguredEvent,
         timestamp: Date.now(),
         payload: {
-          credentialsRoute: `${appConfig.cmUrl}/${aiModelRoute}`, // change it with backendUrl
+          credentialsRoute: `${appConfig.cmBackend}/${aiModelRoute}`, // change it with backendUrl
         } as LLMConfiguredEvent,
       };
       await eventService.publishEvent(event);
@@ -1107,12 +1108,12 @@ export const createQdrantConfig =
   (keyValueStoreService: KeyValueStoreService) =>
   async (req: AuthenticatedUserRequest, res: Response, next: NextFunction) => {
     try {
-      const { apiKey, host, grpcPort } = req.body;
+      const { port, apiKey, host, grpcPort } = req.body;
       const configManagerConfig = loadConfigurationManagerConfig();
       const encryptedQdrantConfig = EncryptionService.getInstance(
         configManagerConfig.algorithm,
         configManagerConfig.secretKey,
-      ).encrypt(JSON.stringify({ apiKey, host, grpcPort }));
+      ).encrypt(JSON.stringify({ port, apiKey, host, grpcPort }));
       await keyValueStoreService.set<string>(
         configPaths.db.qdrant,
         encryptedQdrantConfig,
@@ -1157,11 +1158,14 @@ export const getFrontendUrl =
   (keyValueStoreService: KeyValueStoreService) =>
   async (_req: AuthenticatedUserRequest, res: Response, next: NextFunction) => {
     try {
-      const frontendPublicUrl = await keyValueStoreService.get<string>(
-        configPaths.url.frontend.publicEndpoint,
-      );
-      if (frontendPublicUrl) {
-        res.status(200).json({ url: frontendPublicUrl }).end();
+      const url =
+        (await keyValueStoreService.get<string>(configPaths.endpoint)) || '{}';
+      const parsedUrl = JSON.parse(url);
+      if (parsedUrl?.frontend?.publicEndpoint) {
+        res
+          .status(200)
+          .json({ url: parsedUrl?.frontend?.publicEndpoint })
+          .end();
         return;
       } else {
         res.status(200).json({}).end();
@@ -1177,9 +1181,21 @@ export const setFrontendUrl =
   async (req: AuthenticatedUserRequest, res: Response, next: NextFunction) => {
     try {
       const { url } = req.body;
+      const urls =
+        (await keyValueStoreService.get<string>(configPaths.endpoint)) || '{}';
+
+      let parsedUrls = JSON.parse(urls);
+
+      // Preserve existing `auth` object if it exists, otherwise create a new one
+      parsedUrls.frontend = {
+        ...parsedUrls.frontend,
+        publicEndpoint: url,
+      };
+
+      // Save the updated object back to configPaths.endpoint
       await keyValueStoreService.set<string>(
-        configPaths.url.frontend.publicEndpoint,
-        url,
+        configPaths.endpoint,
+        JSON.stringify(parsedUrls),
       );
       res.status(200).json({
         message: 'Frontend Url saved successfully',
@@ -1194,11 +1210,14 @@ export const getConnectorPublicUrl =
   (keyValueStoreService: KeyValueStoreService) =>
   async (_req: AuthenticatedUserRequest, res: Response, next: NextFunction) => {
     try {
-      const connectorPublicUrl = await keyValueStoreService.get<string>(
-        configPaths.url.connector.publicEndpoint,
-      );
-      if (connectorPublicUrl) {
-        res.status(200).json({ url: connectorPublicUrl }).end();
+      const url =
+        (await keyValueStoreService.get<string>(configPaths.endpoint)) || '{}';
+      const parsedUrl = JSON.parse(url);
+      if (parsedUrl?.connectors?.publicEndpoint) {
+        res
+          .status(200)
+          .json({ url: parsedUrl?.connectors?.publicEndpoint })
+          .end();
         return;
       } else {
         res.status(200).json({}).end();
@@ -1214,10 +1233,26 @@ export const setConnectorPublicUrl =
   async (req: AuthenticatedUserRequest, res: Response, next: NextFunction) => {
     try {
       const { url } = req.body;
+      const urls =
+        (await keyValueStoreService.get<string>(configPaths.endpoint)) || '{}';
+
+      let parsedUrls = JSON.parse(urls);
+
+      // Preserve existing `auth` object if it exists, otherwise create a new one
+      parsedUrls.connectors = {
+        ...parsedUrls.connectors,
+        publicEndpoint: url,
+      };
+
+      // Save the updated object back to configPaths.endpoint
       await keyValueStoreService.set<string>(
-        configPaths.url.connector.publicEndpoint,
-        url,
+        configPaths.endpoint,
+        JSON.stringify(parsedUrls),
       );
+      res.status(200).json({
+        message: 'Frontend Url saved successfully',
+      });
+
       res.status(200).json({
         message: 'Connector Url saved successfully',
       });

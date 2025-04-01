@@ -5,7 +5,7 @@ import { Logger } from '../../../libs/services/logger.service';
 import { FileBufferInfo } from '../../../libs/middlewares/file_processor/fp.interface';
 import axios from 'axios';
 import { KeyValueStoreService } from '../../../libs/services/keyValueStore.service';
-import { storageEtcdPaths } from '../../storage/constants/constants';
+import { endpoint } from '../../storage/constants/constants';
 import { HTTP_STATUS } from '../../../libs/enums/http-status.enum';
 import { DefaultStorageConfig } from '../../tokens_manager/services/cm.service';
 
@@ -37,9 +37,9 @@ export const saveFileToStorageAndGetDocumentId = async (
     filename: file.originalname,
     contentType: file.mimetype,
   });
-  const storageUrl =
-    (await keyValueStoreService.get(storageEtcdPaths.endpoint)) ||
-    defaultConfig.endpoint;
+  const url = (await keyValueStoreService.get<string>(endpoint)) || '{}';
+
+  const storageUrl = JSON.parse(url).storage.endpoint || defaultConfig.endpoint;
 
   // Add other required fields
   formData.append(
@@ -152,9 +152,9 @@ export const uploadNextVersionToStorage = async (
     contentType: file.mimetype,
   });
 
-  const storageUrl =
-    (await keyValueStoreService.get(storageEtcdPaths.endpoint)) ||
-    defaultConfig.endpoint;
+  const url = (await keyValueStoreService.get<string>(endpoint)) || '{}';
+
+  const storageUrl = JSON.parse(url).storage.endpoint || defaultConfig.endpoint;
 
   try {
     const response = await axiosInstance.post(

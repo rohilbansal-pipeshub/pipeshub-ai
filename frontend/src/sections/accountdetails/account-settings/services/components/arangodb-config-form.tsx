@@ -33,14 +33,14 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
   ({ onValidationChange, onSaveSuccess }, ref) => {
     const theme = useTheme();
     const [formData, setFormData] = useState({
-      uri: '',
+      url: '',
       db: '',
       username: '',
       password: '',
     });
 
     const [errors, setErrors] = useState({
-      uri: '',
+      url: '',
       db: '',
       username: '',
       password: '',
@@ -51,7 +51,7 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
     const [saveError, setSaveError] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [originalData, setOriginalData] = useState({
-      uri: '',
+      url: '',
       db: '',
       username: '',
       password: '',
@@ -70,7 +70,7 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
           const config = await getArangoDBConfig();
 
           const data = {
-            uri: config?.uri || '',
+            url: config?.url || '',
             db: config?.db || '',
             username: config?.username || '',
             password: config?.password || '',
@@ -91,16 +91,16 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
     // Validate form and notify parent
     useEffect(() => {
       const isValid =
-        formData.uri.trim() !== '' &&
+        formData.url.trim() !== '' &&
         formData.db.trim() !== '' &&
         formData.username.trim() !== '' &&
-        !errors.uri &&
+        !errors.url &&
         !errors.db &&
         !errors.username;
 
       // Only notify about validation if in edit mode and has changes
       const hasChanges =
-        formData.uri !== originalData.uri ||
+        formData.url !== originalData.url ||
         formData.db !== originalData.db ||
         formData.username !== originalData.username ||
         formData.password !== originalData.password;
@@ -125,8 +125,8 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
     const validateField = (name: string, value: string) => {
       let error = '';
 
-      if (name === 'uri' && value.trim() === '') {
-        error = 'URI is required';
+      if (name === 'url' && value.trim() === '') {
+        error = 'URL is required';
       } else if (name === 'db' && value.trim() === '') {
         error = 'Database name is required';
       } else if (name === 'username' && value.trim() === '') {
@@ -145,7 +145,7 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
         // Cancel edit - revert to original data
         setFormData(originalData);
         setErrors({
-          uri: '',
+          url: '',
           db: '',
           username: '',
           password: '',
@@ -161,7 +161,7 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
 
       try {
         const response = await updateArangoDBConfig({
-          uri: formData.uri,
+          url: formData.url,
           db: formData.db,
           username: formData.username,
           password: formData.password,
@@ -170,7 +170,7 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
         const warningHeader = response.data?.warningMessage;
         // Update original data after successful save
         setOriginalData({
-          uri: formData.uri,
+          url: formData.url,
           db: formData.db,
           username: formData.username,
           password: formData.password,
@@ -253,12 +253,12 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
             <TextField
               fullWidth
               label="ArangoDB URL"
-              name="uri"
-              value={formData.uri}
+              name="url"
+              value={formData.url}
               onChange={handleChange}
               placeholder="http://localhost:8529"
-              error={Boolean(errors.uri)}
-              helperText={errors.uri || 'ArangoDB server URL'}
+              error={Boolean(errors.url)}
+              helperText={errors.url || 'ArangoDB server URL'}
               required
               size="small"
               disabled={!isEditing}

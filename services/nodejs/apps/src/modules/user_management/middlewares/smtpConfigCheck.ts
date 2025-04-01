@@ -12,7 +12,7 @@ import { HttpMethod } from '../../../libs/enums/http-methods.enum';
 import { mailConfigUrl } from '../constants/constants';
 
 export const smtpConfigCheck =
-  (cmUrl: string) =>
+  (cmBackend: string) =>
   async (
     req: AuthenticatedUserRequest,
     _res: Response,
@@ -21,7 +21,7 @@ export const smtpConfigCheck =
     try {
       let configurationManagerCommandOptions: ConfigurationManagerCommandOptions =
         {
-          uri: `${cmUrl}/${mailConfigUrl}`,
+          uri: `${cmBackend}/${mailConfigUrl}`,
           method: HttpMethod.GET,
           headers: req.headers as Record<string, string>,
         };

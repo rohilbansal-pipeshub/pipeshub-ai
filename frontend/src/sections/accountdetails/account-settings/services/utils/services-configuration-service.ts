@@ -16,7 +16,7 @@ export interface MongoDBConfig {
 }
 
 export interface ArangoDBConfig {
-  uri: string;
+  url: string;
   db: string;
   username: string;
   password: string;
@@ -32,8 +32,9 @@ export interface KafkaConfig {
 }
 
 export interface QdrantConfig {
+  port: number;
   host: string;
-  grpcPort: number;
+  grpcPort?: number;
   apiKey?: string;
 }
 

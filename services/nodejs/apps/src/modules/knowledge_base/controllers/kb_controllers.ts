@@ -100,9 +100,8 @@ export const createRecords =
         const key: string = uuidv4();
 
         const frontendUrl =
-          (await keyValueStoreService.get<string>(
-            configPaths.url.frontend.publicEndpoint,
-          )) || appConfig.frontendUrl;
+          (await keyValueStoreService.get<string>(configPaths.url.frontend)) ||
+          appConfig.frontendUrl;
 
         const webUrl = `${frontendUrl}/record/${key}`;
 
@@ -325,14 +324,14 @@ export const getRecordBuffer =
       response.data.pipe(res);
 
       // Handle any errors in the stream
-      response.data.on('error', (error : any) => {
+      response.data.on('error', (error: any) => {
         console.error('Stream error:', error);
         // Only send error if headers haven't been sent yet
         if (!res.headersSent) {
           throw new InternalServerError('Error streaming data');
         }
       });
-    } catch (error : any) {
+    } catch (error: any) {
       console.error('Error fetching record buffer:', error);
       if (!res.headersSent) {
         if (error.response) {
@@ -341,7 +340,7 @@ export const getRecordBuffer =
             error: error.response.data || 'Error from AI backend',
           });
         } else {
-          throw new InternalServerError('Failed to retrieve record data' );
+          throw new InternalServerError('Failed to retrieve record data');
         }
       }
       next(error);

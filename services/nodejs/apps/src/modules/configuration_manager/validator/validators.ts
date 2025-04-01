@@ -121,7 +121,7 @@ export const mongoDBConfigSchema = z.object({
 
 export const arangoDBConfigSchema = z.object({
   body: z.object({
-    uri: z.string().url(),
+    url: z.string().url(),
     username: z.string().optional(),
     password: z.string().optional(),
     db: z.string().min(1, { message: 'ArangoDB database name is required' }),
@@ -165,7 +165,8 @@ export const redisConfigSchema = z.object({
 export const qdrantConfigSchema = z.object({
   body: z.object({
     host: z.string().min(1, { message: 'Qdrant host is required' }),
-    grpcPort: z.number().min(1, { message: 'Qdrant GRPC Port is required' }),
+    port: z.number().min(1, { message: 'Qdrant Port is required' }),
+    grpcPort: z.number().optional(),
     apiKey: z.string().optional(),
   }),
 });
