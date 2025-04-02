@@ -36,7 +36,6 @@ export class StorageService {
           (await this.keyValueStoreService.get<string>(storageEtcdPaths)) ||
           '{}';
         const { storageType } = JSON.parse(storageConfig) || storageTypes.LOCAL;
-        console.log(storageType);
         this.adapter = await this.initializeStorageAdapter(storageType);
         this.isInitialized = true;
       } catch (error) {

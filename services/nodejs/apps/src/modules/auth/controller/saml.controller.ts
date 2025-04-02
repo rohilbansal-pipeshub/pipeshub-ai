@@ -69,10 +69,12 @@ export class SamlController {
         {
           entryPoint: samlEntryPoint,
           callbackUrl: `${this.config.authBackend}/${samlSsoCallbackUrl}`,
-          cert: samlCertificate,
+          idpCert: samlCertificate,
           passReqToCallback: true,
-          issuer: 'your-issuer',
+          issuer: 'pipeshub',
           identifierFormat: null,
+          wantAuthnResponseSigned: false,
+          disableRequestedAuthnContext: true,
         },
         async (req: Request, profile: Profile, done: VerifiedCallback) => {
           try {
@@ -153,6 +155,7 @@ export class SamlController {
         );
       }
       const credentialsData = response.data;
+      console.log(credentialsData);
       if (!credentialsData.certificate) {
         throw new NotFoundError('Certificate is missing');
       }

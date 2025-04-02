@@ -12,6 +12,7 @@ import {
 import { IamService } from '../services/iam.service';
 import {
   BadRequestError,
+  InternalServerError,
   NotFoundError,
   UnauthorizedError,
 } from '../../../libs/errors/http.errors';
@@ -21,6 +22,9 @@ import { Logger } from '../../../libs/services/logger.service';
 import { generateAuthToken } from '../utils/generateAuthToken';
 import { AppConfig } from '../../tokens_manager/config/config';
 
+const isValidEmail = (email: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); // Basic email regex
+};
 export function createSamlRouter(container: Container) {
   const router = Router();
 
@@ -102,6 +106,38 @@ export function createSamlRouter(container: Container) {
         if (req.user) {
           const key = samlController.getSamlEmailKeyByOrgId(orgId);
           req.user.email = req.user[key];
+          if (!isValidEmail(req.user.email)) {
+            const possibleEmailKeys = [
+              'email',
+              'mail',
+              'userPrincipalName',
+              'nameID',
+              'EmailAddress',
+              'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+              'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn',
+              'urn:oid:0.9.2342.19200300.100.1.3',
+              'primaryEmail',
+              'contactEmail',
+              'preferred_username',
+              'mailPrimaryAddress',
+            ];
+
+            // Check other keys if the email is missing or invalid
+            for (const k of possibleEmailKeys) {
+              if (!req.user.email || !isValidEmail(req.user.email)) {
+                if (req.user[k] && isValidEmail(req.user[k])) {
+                  req.user.email = req.user[k];
+                  break; // Stop once a valid email is found
+                }
+              }
+            }
+          }
+
+          if (!req.user.email) {
+            throw new InternalServerError(
+              'Valid Email ID not found in SAML response',
+            );
+          }
           logger.info(req.user.email);
 
           logger.info('SAML callback email', req.user.email);
