@@ -47,6 +47,7 @@ class KafkaRouteConsumer:
                 'userDeleted': self.handle_user_deleted,
                 'appEnabled': self.handle_app_enabled,
                 'appDisabled': self.handle_app_disabled,
+                'llmConfigured': self.handle_llm_configured,
             }
         }
 
@@ -665,6 +666,9 @@ class KafkaRouteConsumer:
         except Exception as e:
             logger.error(f"❌ Error disabling apps: {str(e)}")
             return False
+        
+    async def handle_llm_configured(self, payload: dict) -> bool:
+        pass
 
     async def consume_messages(self):
         """Main consumption loop."""

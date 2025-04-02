@@ -14,7 +14,6 @@ from app.utils.citations import process_citations
 from app.utils.query_transform import setup_query_transformation
 from app.utils.query_decompose import QueryDecompositionService
 from app.modules.reranker.reranker import RerankerService
-from app.utils.llm import get_llm
 
 router = APIRouter()
 
@@ -54,11 +53,10 @@ async def get_reranker_service(request: Request) -> RerankerService:
 async def askAI(request: Request, query_info: ChatQuery, 
                 retrieval_service: RetrievalService=Depends(get_retrieval_service),
                 arango_service: ArangoService=Depends(get_arango_service),
-                config_service: ConfigurationService=Depends(get_config_service),
                 reranker_service: RerankerService=Depends(get_reranker_service)):
     """Perform semantic search across documents"""
     try:
-        llm = await get_llm(config_service)        
+        llm = retrieval_service.llm
       
         print("useDecomposition", query_info.useDecomposition)
         if query_info.useDecomposition:

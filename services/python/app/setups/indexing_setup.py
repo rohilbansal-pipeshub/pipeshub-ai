@@ -50,36 +50,6 @@ class AppContainer(containers.DeclarativeContainer):
         ConfigurationService
     )
 
-    async def _create_llm_config(config_service):
-        """Async factory method to create LLMConfig."""
-        ai_models = await config_service.get_config(config_node_constants.AI_MODELS.value)
-        llm_configs = ai_models['llm']
-        # Iterate through available LLM configurations
-        for config in llm_configs:
-            provider = config['provider']
-            if provider == LLMProvider.AZURE_OPENAI_PROVIDER.value:
-                return AzureLLMConfig(
-                    model=config['configuration']['model'],
-                    temperature=0.4,
-                    api_key=config['configuration']['apiKey'],
-                    azure_endpoint=config['configuration']['endpoint'],
-                    azure_api_version=AzureOpenAILLM.AZURE_OPENAI_VERSION.value,
-                    azure_deployment=config['configuration']['deploymentName'],                
-                )
-            elif provider == LLMProvider.OPENAI_PROVIDER.value:
-                return OpenAILLMConfig(
-                    model=config['configuration']['model'],
-                    temperature=0.4,
-                    api_key=config['configuration']['apiKey'],
-                )
-        
-        raise ValueError("No supported LLM provider found in configuration")
-
-    llm_config = providers.Resource(
-        _create_llm_config,
-        config_service=config_service
-    )
-
     async def _fetch_arango_host(config_service):
         """Fetch ArangoDB host URL from etcd asynchronously."""
         arango_config = await config_service.get_config(config_node_constants.ARANGODB.value)
@@ -142,28 +112,28 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     # Domain extraction service - depends on arango_service
-    async def _create_domain_extractor(arango_service, llm_config):
+    async def _create_domain_extractor(arango_service, config_service):
         """Async factory for DomainExtractor"""
-        extractor = DomainExtractor(arango_service, llm_config)
+        extractor = DomainExtractor(arango_service, config_service)
         # Add any necessary async initialization
         return extractor
 
     domain_extractor = providers.Resource(
         _create_domain_extractor,
         arango_service=arango_service,
-        llm_config=llm_config
+        config_service=config_service
     )
 
     # Parsers
-    async def _create_parsers(llm_config):
+    async def _create_parsers():
         """Async factory for Parsers"""
         parsers = {
             'docx': DocxParser(),
             'pptx': PPTXParser(),
             'html': HTMLParser(),
             'md': MarkdownParser(),
-            'csv': CSVParser(llm_config),
-            'excel': ExcelParser(llm_config),
+            'csv': CSVParser(),
+            'excel': ExcelParser(),
             'doc': DocParser(),
             'google_docs': GoogleDocsParser(),
             'google_slides': GoogleSlidesParser(),
@@ -173,7 +143,6 @@ class AppContainer(containers.DeclarativeContainer):
 
     parsers = providers.Resource(
         _create_parsers,
-        llm_config=llm_config
     )
 
     # Processor - depends on domain_extractor, indexing_pipeline, and arango_service

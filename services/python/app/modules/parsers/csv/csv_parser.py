@@ -8,7 +8,7 @@ from app.modules.parsers.excel.prompt_template import row_text_prompt
 from app.core.llm_service import LLMFactory
 
 class CSVParser:
-    def __init__(self, llm_config, delimiter: str = ',', quotechar: str = '"', encoding: str = 'utf-8'):
+    def __init__(self, delimiter: str = ',', quotechar: str = '"', encoding: str = 'utf-8'):
         """
         Initialize the CSV parser with configurable parameters.
 
@@ -17,7 +17,6 @@ class CSVParser:
             quotechar: Character used for quoting fields (default: double quote)
             encoding: File encoding (default: utf-8)
         """
-        self.llm = LLMFactory.create_llm(llm_config)
         self.row_text_prompt = row_text_prompt
         self.delimiter = delimiter
         self.quotechar = quotechar
@@ -145,7 +144,7 @@ class CSVParser:
         # Return as string if no other type matches
         return value
 
-    async def get_rows_text(self, rows: List[Dict[str, Any]], batch_size: int = 10) -> List[str]:
+    async def get_rows_text(self, llm, rows: List[Dict[str, Any]], batch_size: int = 10) -> List[str]:
         """Convert multiple rows into natural language text in batches."""
         processed_texts = []
 
@@ -165,7 +164,7 @@ class CSVParser:
                 rows_data=json.dumps(rows_data, indent=2)
             )
 
-            response = await self.llm.ainvoke(messages)
+            response = await llm.ainvoke(messages)
 
             # Try to extract JSON array from response
             try:

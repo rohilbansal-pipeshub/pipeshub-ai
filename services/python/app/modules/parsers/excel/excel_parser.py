@@ -12,11 +12,9 @@ from datetime import datetime
 
 
 class ExcelParser:
-    def __init__(self, llm_config):
+    def __init__(self):
         self.workbook = None
         self.file_binary = None
-
-        self.llm = LLMFactory.create_llm(llm_config)
 
         # Store prompts
         self.sheet_summary_prompt = sheet_summary_prompt
@@ -517,8 +515,9 @@ class ExcelParser:
             logger.error(f"❌ Error getting rows text: {str(e)}")
             raise
 
-    async def process_sheet_with_summaries(self, sheet_name: str) -> Dict[str, Any]:
+    async def process_sheet_with_summaries(self, llm, sheet_name: str) -> Dict[str, Any]:
         """Process a sheet and generate all summaries and row texts"""
+        self.llm = llm
         if not self.workbook:
             self.parse()
 

@@ -53,6 +53,7 @@ class KafkaConfig(Enum):
     """Constants for kafka configuration"""
     CLIENT_ID_RECORDS = "record-processor"
     CLIENT_ID_MAIN = "enterprise-search"
+    CLIENT_ID_LLM = "llm-configuration"
     
 class CeleryConfig(Enum):
     """Constants for celery configuration"""

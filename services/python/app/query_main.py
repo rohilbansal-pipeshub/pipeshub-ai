@@ -1,4 +1,5 @@
 import uvicorn
+import asyncio
 from fastapi import FastAPI, Depends, Request, HTTPException, status
 from fastapi.responses import JSONResponse 
 from app.setups.query_setup import AppContainer
@@ -10,7 +11,9 @@ from app.api.routes.chatbot import router as chatbot_router
 from app.api.routes.records import router as records_router
 from app.api.middlewares.auth import authMiddleware
 
-from app.utils.logger import logger
+from app.utils.logger import create_logger
+
+logger = create_logger(__name__)
 
 container = AppContainer()
 
@@ -30,6 +33,11 @@ async def initialize_container(container: AppContainer) -> bool:
         else:
             raise Exception("Failed to connect to ArangoDB")
         
+        # Initialize Kafka consumer
+        logger.info("Initializing llm config handler")
+        llm_config_handler = await container.llm_config_handler()
+        await llm_config_handler.start()
+        logger.info("✅ Kafka consumer initialized")
         return True
 
     except Exception as e:
@@ -61,10 +69,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     app_container = await get_initialized_container()
     # Store container in app state for access in dependencies
     app.container = app_container
-    yield
+    consumer = await container.llm_config_handler()
+    consume_task = asyncio.create_task(consumer.consume_messages())
     
-    logger.debug("🔄 Shutting down retrieval application")
-
+    yield
+    # Shutdown
+    logger.info("🔄 Shutting down application")
+    consumer.stop()
+    # Cancel the consume task
+    consume_task.cancel()
+    try:
+        await consume_task
+    except asyncio.CancelledError:
+        logger.info("Kafka consumer task cancelled")
+        logger.debug("🔄 Shutting down retrieval application")
+    
 # Create FastAPI app with lifespan
 app = FastAPI(
     title="Retrieval API",

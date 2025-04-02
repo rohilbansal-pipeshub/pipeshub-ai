@@ -9,11 +9,10 @@ from datetime import datetime
 
 from app.modules.parsers.pdf.ocr_handler import OCRHandler
 from app.modules.parsers.docx.docling_docx import DocxParser
-from app.modules.parsers.excel.excel_parser import ExcelParser
 from app.config.arangodb_constants import CollectionNames
 from app.config.configuration_service import config_node_constants
 from app.config.ai_models_named_constants import OCRProvider, AzureDocIntelligenceModel
-
+from app.utils.llm import get_llm
 class Processor:
     def __init__(self, config_service, domain_extractor, indexing_pipeline, arango_service, parsers):
         logger.info("🚀 Initializing Processor")
@@ -539,9 +538,9 @@ class Processor:
             f"🚀 Starting Excel document processing for record: {recordName}")
 
         try:
-            # Initialize and use ExcelParser
             logger.debug("📊 Processing Excel content")
-            parser: ExcelParser = self.parsers['excel']
+            llm = await get_llm(self.config_service)
+            parser = self.parsers['excel']
             excel_result = parser.parse(excel_binary)
             logger.debug(f"📑 Excel result processed, {excel_result}")
 
@@ -568,7 +567,7 @@ class Processor:
             # Process each sheet using process_sheet_with_summaries
             logger.debug("📝 Processing sheets")
             for sheet_idx, sheet_name in enumerate(excel_result['sheet_names'], 1):
-                sheet_data = await parser.process_sheet_with_summaries(sheet_name)
+                sheet_data = await parser.process_sheet_with_summaries(llm, sheet_name)
                 # Add sheet entry
                 sheet_entry = {
                     "number": f"S{sheet_idx}",
@@ -652,6 +651,8 @@ class Processor:
             # Initialize CSV parser
             logger.debug("📊 Processing CSV content")
             parser = self.parsers['csv']
+            
+            llm = await get_llm(self.config_service)
 
             # Save temporary file to process CSV
             temp_file_path = f"/tmp/{recordName}_temp.csv"
@@ -712,7 +713,7 @@ class Processor:
             batch_size = 10  # Define a suitable batch size
             for i in range(0, len(csv_result), batch_size):
                 batch = csv_result[i:i + batch_size]
-                row_texts = await parser.get_rows_text(batch)
+                row_texts = await parser.get_rows_text(llm, batch)
 
                 for idx, (row, row_text) in enumerate(zip(batch, row_texts), start=i+1):
                     row_entry = {

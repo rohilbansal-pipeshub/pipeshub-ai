@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 import numpy as np
 from app.core.llm_service import LLMFactory
 from app.config.arangodb_constants import CollectionNames, DepartmentNames
+from app.utils.llm import get_llm
 logger = create_logger("domain_extraction")
 
 # Update the Literal types
@@ -59,12 +60,12 @@ class DocumentClassification(BaseModel):
 
 
 class DomainExtractor:
-    def __init__(self, base_arango_service, llm_config):
+    def __init__(self, base_arango_service, config_service):
         self.arango_service = base_arango_service
+        self.config_service = config_service
         logger.info("🚀 self.arango_service: %s", self.arango_service)
         logger.info("🚀 self.arango_service.db: %s", self.arango_service.db)
 
-        self.llm = LLMFactory.create_llm(llm_config)
         self.parser = PydanticOutputParser(
             pydantic_object=DocumentClassification)
 
@@ -178,7 +179,7 @@ class DomainExtractor:
         Extract metadata from document content using Azure OpenAI.
         """
         logger.info("🎯 Extracting domain metadata")
-
+        self.llm = await get_llm(self.config_service)
         try:
             # Test Azure connection before making the call
             test_message = [HumanMessage(content="test")]

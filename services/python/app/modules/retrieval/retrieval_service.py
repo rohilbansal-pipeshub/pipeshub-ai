@@ -1,16 +1,21 @@
 from typing import List, Dict, Any, Optional, Set, Tuple
-from collections import defaultdict
+from app.config.configuration_service import config_node_constants
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Filter, FieldCondition, MatchValue
 from langchain_qdrant import QdrantVectorStore, FastEmbedSparse, RetrievalMode
-from dotenv import load_dotenv
 from app.modules.retrieval.retrieval_arango import ArangoService
 from app.config.arangodb_constants import CollectionNames,RecordTypes
+from app.core.llm_service import AzureLLMConfig, OpenAILLMConfig, LLMFactory
+from app.config.ai_models_named_constants import LLMProvider, AzureOpenAILLM
+from app.utils.logger import create_logger
+
+logger = create_logger("retrieval_service")
 
 class RetrievalService:
     def __init__(
         self,
+        config_service,
         collection_name: str,
         qdrant_api_key: str,
         qdrant_host: str,
@@ -27,6 +32,9 @@ class RetrievalService:
         # Initialize dense embeddings with BGE (same as indexing)
         model_name = "BAAI/bge-large-en-v1.5"
         encode_kwargs = {'normalize_embeddings': True}
+        
+        self.config_service = config_service
+        self.llm = None
 
         self.dense_embeddings = HuggingFaceEmbeddings(
             model_name=model_name,
@@ -57,6 +65,45 @@ class RetrievalService:
             sparse_embedding=self.sparse_embeddings,
             retrieval_mode=RetrievalMode.HYBRID,
         )
+        
+    async def get_llm(self):
+        try:
+            logger.info("Getting LLM")
+            ai_models = await self.config_service.get_config(config_node_constants.AI_MODELS.value)
+            llm_configs = ai_models['llm']
+            # For now, we'll use the first available provider that matches our supported types
+            # We will add logic to choose a specific provider based on our needs
+            llm_config = None
+            
+            for config in llm_configs:
+                provider = config['provider']
+                if provider == LLMProvider.AZURE_OPENAI_PROVIDER.value:
+                    llm_config = AzureLLMConfig(
+                        model=config['configuration']['model'],
+                        temperature=0.2,
+                        api_key=config['configuration']['apiKey'],
+                        azure_endpoint=config['configuration']['endpoint'],
+                        azure_api_version=AzureOpenAILLM.AZURE_OPENAI_VERSION.value,
+                        azure_deployment=config['configuration']['deploymentName'],
+                    )
+                    break
+                elif provider == LLMProvider.OPENAI_PROVIDER.value:
+                    llm_config = OpenAILLMConfig(
+                        model=config['configuration']['model'],
+                        temperature=0.2,
+                        api_key=config['configuration']['apiKey'],
+                    )
+                    break
+            
+            if not llm_config:
+                raise ValueError("No supported LLM provider found in configuration")
+
+            self.llm = LLMFactory.create_llm(llm_config)
+            logger.info("LLM created successfully")
+            return self.llm        
+        except Exception as e:
+            logger.error(f"Error getting LLM: {str(e)}")
+            return None
         
     def _preprocess_query(self, query: str) -> str:
         """

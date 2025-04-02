@@ -6,6 +6,7 @@ from app.modules.retrieval.retrieval_service import RetrievalService
 from app.modules.retrieval.retrieval_arango import ArangoService
 from app.utils.logger import logger
 from app.modules.reranker.reranker import RerankerService
+from app.services.llm_config_handler import LLMConfigHandler
 
 
 class AppContainer(containers.DeclarativeContainer):
@@ -62,9 +63,10 @@ class AppContainer(containers.DeclarativeContainer):
     )
 
     # Vector search service
-    async def _create_retrieval_service(config):
+    async def _create_retrieval_service(config_service, config):
         """Async factory for RetrievalService"""
         service = RetrievalService(
+            config_service=config_service,
             collection_name=config['collectionName'],
             qdrant_api_key=config['apiKey'],
             qdrant_host=config['host'],
@@ -74,9 +76,16 @@ class AppContainer(containers.DeclarativeContainer):
 
     retrieval_service = providers.Resource(
         _create_retrieval_service,
+        config_service=config_service,
         config=qdrant_config
     )
-
+    
+    llm_config_handler = providers.Singleton(
+        LLMConfigHandler,
+        config_service=config_service,
+        retrieval_service=retrieval_service
+    )
+    
     reranker_service = providers.Singleton(
         RerankerService,
         model_name="BAAI/bge-reranker-base"  # Choose model based on speed/accuracy needs
