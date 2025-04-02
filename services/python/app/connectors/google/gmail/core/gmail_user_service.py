@@ -33,6 +33,7 @@ class GmailUserService:
         self.google_token_handler = google_token_handler
         self.gmail_drive_interface = GmailDriveInterface(
             config=self.config_service,
+            google_token_handler=self.google_token_handler,
             rate_limiter=rate_limiter
         )
 

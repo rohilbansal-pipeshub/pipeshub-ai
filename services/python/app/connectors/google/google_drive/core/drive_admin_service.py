@@ -19,10 +19,11 @@ from uuid import uuid4
 class DriveAdminService:
     """DriveAdminService class for interacting with Google Drive API"""
 
-    def __init__(self, config: ConfigurationService, rate_limiter: GoogleAPIRateLimiter):
+    def __init__(self, config: ConfigurationService, rate_limiter: GoogleAPIRateLimiter, google_token_handler):
         self.config_service = config
         self.rate_limiter = rate_limiter
         self.google_limiter = self.rate_limiter.google_limiter
+        self.google_token_handler = google_token_handler
         self.admin_service = None
         self.credentials = None
 
@@ -133,6 +134,7 @@ class DriveAdminService:
             user_service = DriveUserService(
                 config=self.config_service,
                 rate_limiter=self.rate_limiter,
+                google_token_handler=self.google_token_handler,
                 credentials=user_credentials
             )
 

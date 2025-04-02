@@ -14,12 +14,14 @@ class GmailDriveInterface:
         self,
         config: ConfigurationService,
         rate_limiter: GoogleAPIRateLimiter,
+        google_token_handler,
         drive_service=None,
         credentials=None
     ):
         self.config_service = config
         self.rate_limiter = rate_limiter
         self.drive_service = drive_service
+        self.google_token_handler = google_token_handler
         self.credentials = credentials
 
 
@@ -45,7 +47,8 @@ class GmailDriveInterface:
                 if not isinstance(self.drive_service, DriveAdminService):
                     self.drive_service = DriveAdminService(
                         config=self.config_service,
-                        rate_limiter=self.rate_limiter
+                        rate_limiter=self.rate_limiter,
+                        google_token_handler=self.google_token_handler
                     )
                     if not await self.drive_service.connect_admin(org_id):
                         logger.error(
@@ -69,6 +72,7 @@ class GmailDriveInterface:
                     self.drive_service = DriveUserService(
                         config=self.config_service,
                         rate_limiter=self.rate_limiter,
+                        google_token_handler=self.google_token_handler,
                         credentials=self.credentials
                     )
                     
