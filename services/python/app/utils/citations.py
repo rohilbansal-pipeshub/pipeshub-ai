@@ -141,8 +141,6 @@ def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str
             # Filter out empty values
             chunk_indexes = [idx for idx in chunk_indexes if idx]
             
-            print(chunk_indexes, "chunk_indexes")
-            print(documents, "documents")
             # Process each index
             for idx in chunk_indexes:
                 try:

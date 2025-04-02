@@ -121,7 +121,7 @@ const updateLlmConfig = async (config: LlmFormValues, provider = 'OpenAI'): Prom
       ...currentConfig,
       llm: [
         {
-          name: provider,
+          provider: provider,
           configuration: config,
         },
       ],
