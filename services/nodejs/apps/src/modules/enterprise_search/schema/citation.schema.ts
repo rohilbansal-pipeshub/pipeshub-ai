@@ -19,7 +19,7 @@ export interface ICitationMetadata {
   blockType?: number | string;
   mimeType: string;
   recordId: string;
-  recordIndex: number;
+  chunkIndex: number;
   recordVersion: number;
   topics?: string[];
   languages?: string[];
@@ -34,7 +34,7 @@ export interface ICitationMetadata {
 
 export interface ICitation extends Document {
   content: string;
-  recordIndex: number;
+  chunkIndex: number;
   metadata: ICitationMetadata;
   citationType: string;
   createdAt: Date;
@@ -42,8 +42,8 @@ export interface ICitation extends Document {
 }
 
 export interface AiSearchResponse {
-  searchResults : ICitation[];
-  records : Record<string,any>;
+  searchResults: ICitation[];
+  records: Record<string, any>;
 }
 
 interface ICitationModel extends Model<ICitation> {
@@ -84,7 +84,7 @@ const citationMetadataSchema = new Schema<ICitationMetadata>({
 const citationSchema = new Schema<ICitation, ICitationModel>(
   {
     content: { type: String, required: true },
-    recordIndex: { type: Number, required: true },
+    chunkIndex: { type: Number, required: true },
     metadata: { type: citationMetadataSchema, required: true },
     citationType: { type: String, required: true },
   },
@@ -107,7 +107,7 @@ citationSchema.statics.createFromAIResponse = async function (
   return new this({
     orgId,
     content: aiCitation.content,
-    recordIndex: aiCitation.metadata.recordIndex,
+    chunkIndex: aiCitation.metadata.chunkIndex,
     citationType: aiCitation.citationType,
     metadata: aiCitation.metadata,
   });

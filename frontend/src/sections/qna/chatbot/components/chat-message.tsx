@@ -120,8 +120,8 @@ const MessageContent: React.FC<MessageContentProps> = ({
     const result: { [key: number]: CustomCitation } = {};
 
     citations.forEach((citation) => {
-      if (citation && citation.recordIndex && !result[citation.recordIndex]) {
-        result[citation.recordIndex] = citation;
+      if (citation && citation.chunkIndex && !result[citation.chunkIndex]) {
+        result[citation.chunkIndex] = citation;
       }
     });
 
@@ -352,7 +352,6 @@ const MessageContent: React.FC<MessageContentProps> = ({
   );
 };
 
-
 const ChatMessage = ({
   message,
   isExpanded,
@@ -397,13 +396,13 @@ const ChatMessage = ({
 
   const handleViewPdf = async (
     url: string,
-    citationMeta : Metadata,
+    citationMeta: Metadata,
     citations: CustomCitation[],
     isExcelFile?: boolean,
     buffer?: ArrayBuffer
   ): Promise<void> =>
     new Promise<void>((resolve) => {
-      onViewPdf(url,citationMeta, citations, isExcelFile,buffer);
+      onViewPdf(url, citationMeta, citations, isExcelFile, buffer);
       resolve();
     });
 

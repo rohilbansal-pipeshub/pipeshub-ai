@@ -6,16 +6,16 @@ export interface ApiCitation {
     subcategoryLevel1: string;
     subcategoryLevel2: string;
     subcategoryLevel3: string;
-    categories : string;
-    departments : string[];
-    connector : string;
-    recordType : string;
+    categories: string;
+    departments: string[];
+    connector: string;
+    recordType: string;
     orgId: string;
-    blockType : number;
-    mimeType : string;
-    recordId : string;
-    recordVersion : number;
-    topics : string[];
+    blockType: number;
+    mimeType: string;
+    recordId: string;
+    recordVersion: number;
+    topics: string[];
 
     documentIndex: number;
     citationMetaData: {
@@ -38,35 +38,35 @@ export interface ApiCitation {
 }
 
 export interface BoundingBox {
-  x : number;
-  y : number;
-  _id : string;
+  x: number;
+  y: number;
+  _id: string;
 }
 
 export interface Metadata {
   _id: string;
-  blockNum : number;
-  pageNum : number;
+  blockNum: number;
+  pageNum: number;
   subcategoryLevel1: string;
   subcategoryLevel2: string;
   subcategoryLevel3: string;
-  categories : string;
-  departments : string[];
-  connector : string;
-  recordType : string;
+  categories: string;
+  departments: string[];
+  connector: string;
+  recordType: string;
   orgId: string;
-  blockType : number;
-  mimeType : string;
-  recordId : string;
-  recordVersion : number;
-  topics : string[];
+  blockType: number;
+  mimeType: string;
+  recordId: string;
+  recordVersion: number;
+  topics: string[];
   languages: string[];
-  bounding_box : BoundingBox[];
-  recordName : string;
-  origin : string;
-  extension : string;
-  rowNum?:number;
-  _collection_name : string;
+  bounding_box: BoundingBox[];
+  recordName: string;
+  origin: string;
+  extension: string;
+  rowNum?: number;
+  _collection_name: string;
 }
 
 // The Citation interface as specified
@@ -75,12 +75,12 @@ export interface Citation {
   citationData: {
     _id: string;
     content: string;
-    recordIndex : number;
-    metadata : Metadata;
-    citationType : string;
-    createdAt : string;
-    updatedAt : string;
-  }
+    chunkIndex: number;
+    metadata: Metadata;
+    citationType: string;
+    createdAt: string;
+    updatedAt: string;
+  };
   [key: string]: any;
 }
 
@@ -192,14 +192,14 @@ export interface ApiResponse {
 export interface CustomCitation {
   id: string;
   _id: string;
-  citationId:string;
+  citationId: string;
   content: string;
   metadata: Metadata;
   orgId: string;
   citationType: string;
   createdAt: string;
   updatedAt: string;
-  recordIndex : number;
+  chunkIndex: number;
 }
 
 export interface FormattedMessage {

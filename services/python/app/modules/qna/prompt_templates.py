@@ -10,10 +10,10 @@ qna_prompt = """
 
     ** These instructions are applicable even for followup conversations **
         Context for Current Query:
-        {% for record in records %}
-        - Record Index: {{ loop.index }}
-        - Record Content: {{ record.content }}
-        - Record Metadata: {{ record.metadata }}
+        {% for chunk in chunks %}
+        - Chunk Index: {{ loop.index }}
+        - Chunk Content: {{ chunk.content }}
+        - Chunk Metadata: {{ chunk.metadata }}
         {% endfor %}
 
         NOTE: ** Context for Current query might not be relevant in some cases where current query is highly related to previous context **
@@ -26,22 +26,22 @@ qna_prompt = """
         - Provide detailed answers using all relevant information from the source materials
         - Include every key point that addresses the question directly
         - Do not summarize or omit important details
-        - For each record block provide the citations record only **highly revelant indexes** in below format. Give the order of the citation index in the order of relevancy
-            - **Do not list excessive citations for the same point. Include only the top 4-5 most relevant record indexes for any statement, ensuring they represent the strongest support.**
+        - For each chunk block provide the citations chunk only **highly revelant indexes** in below format. Give the order of the citation index in the order of relevancy
+            - **Do not list excessive citations for the same point. Include only the top 4-5 most relevant chunk indexes for any statement, ensuring they represent the strongest support.**
         - Provide a structured response that includes the answer, reasoning, confidence level, and documents used for reference.
         2. Citation Format:
         - Use square brackets for reference IDs: like [3], [5], using "Verbatim Document Indexes starting from 1, 2" etc.
 
         3. Improvements Focus:
         - When suggesting improvements, focus only on those that directly address the question 
-        - If there are No 'SIGNIFICANT' improvements that can be done, Please return empty improvements array. Please Do not hallucinate and do not create trivial improvements and do not repeat your improvements
+        - If there are No 'SIGNfIFICANT' improvements that can be done, Please return empty improvements array. Please Do not hallucinate and do not create trivial improvements and do not repeat your improvements
         - Avoid listing generic or tangentially related improvements
 
         4. Quality Control:
         - Double-check that each referenced source actually supports your point
         - Ensure all citations are directly relevant to the query
 
-        5. If the Current Query Context is insufficient to answer the query, state "Information not found in your knowledge sources" without referencing document records.
+        5. If the Current Query Context is insufficient to answer the query, state "Information not found in your knowledge sources" without referencing document chunks.
     
         6. 
             i. Identify and number each distinct question in the user's query
@@ -54,11 +54,11 @@ qna_prompt = """
         
         Output format:
         {
-            "answer": "<Provide the answer to the query with relevant record index citations>e.g. Security checks are performed at regular intervals. [2][4]. Keep count to atmost 4-5 highly relevant citations",
-            "reason": "<Explain how the answer was derived using the records and reasoning>",
+            "answer": "<Provide the answer to the query with relevant chunk index citations>e.g. Security checks are performed at regular intervals. [2][4]. Keep count to atmost 4-5 highly relevant citations",
+            "reason": "<Explain how the answer was derived using the chunks and reasoning>",
             "confidence": "<Choose one: Very High, High, Medium, Low>",
-            "answerMatchType": "<Choose one: Exact Match, Derived From Records>",
-            "recordIndexes": ["<List record verbatim indexes referred as "Document Index: <Index>" highly relevant to the answer. Keep count to atmost 4-5 highly relevant citations>"], e.g. ["2", "5"]
+            "answerMatchType": "<Choose one: Exact Match, Derived From Chunks>",
+            "chunkIndexes": ["<List chunk verbatim indexes referred as "Chunk Index: <Index>" highly relevant to the answer. Keep count to atmost 4-5 highly relevant citations>"], e.g. ["2", "5"]
         }
         
         "Your entire response/output is going to consist of a single JSON, and you will NOT wrap it within JSON md markers"

@@ -206,7 +206,7 @@ const RecordSalesAgent = ({ initialContext, recordId }: RecordSalesAgentProps) =
       return {
         ...baseMessage,
         type: 'bot',
-        confidence: apiMessage.confidence || '', 
+        confidence: apiMessage.confidence || '',
         citations: (apiMessage.citations || []).map((citation: Citation) => ({
           id: citation.citationId,
           _id: citation.citationData?._id || citation.citationId,
@@ -217,7 +217,7 @@ const RecordSalesAgent = ({ initialContext, recordId }: RecordSalesAgentProps) =
           citationType: citation.citationType,
           createdAt: citation.citationData?.createdAt || new Date().toISOString(),
           updatedAt: citation.citationData?.updatedAt || new Date().toISOString(),
-          recordIndex : citation.citationData.recordIndex || 1,
+          chunkIndex: citation.citationData.chunkIndex || 1,
         })),
       };
     }
@@ -299,7 +299,7 @@ const RecordSalesAgent = ({ initialContext, recordId }: RecordSalesAgentProps) =
           if (msg.type === 'bot' && msg.citations && msg.citations.length > 0) {
             citationStates[idx] = false;
           }
-        }); 
+        });
 
         setMessages(formattedMessages);
         setExpandedCitations(citationStates);
@@ -548,12 +548,15 @@ const RecordSalesAgent = ({ initialContext, recordId }: RecordSalesAgentProps) =
     setInputValue(e.target.value);
   }, []);
 
-  const onViewPdf = useCallback((url: string,citationMeta : Metadata, citations: CustomCitation[]) => {
-    setAggregatedCitations(citations);
-    setPdfUrl(url);
-    setOpenPdfView(true);
-    setDrawerOpen(false);
-  }, []);
+  const onViewPdf = useCallback(
+    (url: string, citationMeta: Metadata, citations: CustomCitation[]) => {
+      setAggregatedCitations(citations);
+      setPdfUrl(url);
+      setOpenPdfView(true);
+      setDrawerOpen(false);
+    },
+    []
+  );
 
   const onClosePdf = useCallback(() => {
     setOpenPdfView(false);

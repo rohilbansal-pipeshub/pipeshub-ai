@@ -97,7 +97,7 @@ export const createConversation =
         aiResponseData.data?.citations?.map(async (citation: any) => {
           const newCitation = new Citation({
             content: citation.content,
-            recordIndex: citation.recordIndex,
+            chunkIndex: citation.chunkIndex,
             citationType: citation.citationType,
             metadata: {
               ...citation.metadata,
@@ -284,7 +284,7 @@ export const addMessage =
           aiResponseData.data?.citations?.map(async (citation: any) => {
             const newCitation = new Citation({
               content: citation.content,
-              recordIndex: citation.recordIndex,
+              chunkIndex: citation.chunkIndex,
               citationType: citation.citationType,
               metadata: {
                 ...citation.metadata,
@@ -1176,7 +1176,7 @@ export const regenerateAnswers =
           aiResponse.data.citations.map(async (citation: ICitation) => {
             const newCitation = new Citation({
               content: citation.content,
-              recordIndex: citation.recordIndex ?? 0,
+              chunkIndex: citation.chunkIndex ?? 0,
               citationType: citation.citationType,
               metadata: {
                 ...citation.metadata,
@@ -1822,7 +1822,6 @@ export const search =
       const aiResponse =
         (await aiCommand.execute()) as AIServiceResponse<AiSearchResponse>;
 
-
       if (!aiResponse || aiResponse.statusCode !== 200 || !aiResponse.data) {
         throw new InternalServerError(
           'Failed to get response from AI service',
@@ -1838,7 +1837,7 @@ export const search =
           results.map(async (result: ICitation) => {
             const citationDoc = new Citation({
               content: result.content,
-              recordIndex: result.recordIndex ?? 0, // fallback to 0 if not present
+              chunkIndex: result.chunkIndex ?? 0, // fallback to 0 if not present
               citationType: result.citationType,
               metadata: result.metadata,
             });
@@ -2150,99 +2149,101 @@ export const unshareSearch =
     const startTime = Date.now();
     const { userIds } = req.body;
     try {
-    const orgId = req.user?.orgId;
-    const userId = req.user?.userId;
-    const filter = buildFilter(req, orgId, userId, searchId);
+      const orgId = req.user?.orgId;
+      const userId = req.user?.userId;
+      const filter = buildFilter(req, orgId, userId, searchId);
 
-    logger.debug('Attempting to unshare search', {
-      requestId,
-      searchId,
-      userId,
-      timestamp: new Date().toISOString(),
-    });
+      logger.debug('Attempting to unshare search', {
+        requestId,
+        searchId,
+        userId,
+        timestamp: new Date().toISOString(),
+      });
 
-    const search = await EnterpriseSemanticSearch.findOne(filter);
-    if (!search) {
-      throw new NotFoundError('Search Id not found or unauthorized');
-    }
+      const search = await EnterpriseSemanticSearch.findOne(filter);
+      if (!search) {
+        throw new NotFoundError('Search Id not found or unauthorized');
+      }
 
-    // Validate all user IDs
-    await Promise.all(
-      userIds.map(async (id: string) => {
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-          throw new BadRequestError(`Invalid user ID format: ${id}`);
-        }
-        try {
-          const iamCommand = new IAMServiceCommand({
-            uri: `${appConfig.iamBackend}/api/v1/users/${id}`,
-            method: HttpMethod.GET,
-            headers: req.headers as Record<string, string>,
-          });
-          const userResponse = await iamCommand.execute();
-          if (userResponse && userResponse.statusCode !== 200) {
+      // Validate all user IDs
+      await Promise.all(
+        userIds.map(async (id: string) => {
+          if (!mongoose.Types.ObjectId.isValid(id)) {
+            throw new BadRequestError(`Invalid user ID format: ${id}`);
+          }
+          try {
+            const iamCommand = new IAMServiceCommand({
+              uri: `${appConfig.iamBackend}/api/v1/users/${id}`,
+              method: HttpMethod.GET,
+              headers: req.headers as Record<string, string>,
+            });
+            const userResponse = await iamCommand.execute();
+            if (userResponse && userResponse.statusCode !== 200) {
+              throw new BadRequestError(`User not found: ${id}`);
+            }
+          } catch (exception) {
+            logger.debug(`User does not exist: ${id}`, {
+              requestId,
+            });
             throw new BadRequestError(`User not found: ${id}`);
           }
-        } catch (exception) {
-          logger.debug(`User does not exist: ${id}`, {
-            requestId,
-          });
-          throw new BadRequestError(`User not found: ${id}`);
-        }
-      }),
-    );
+        }),
+      );
 
-    // Get existing shared users
-    const existingSharedWith = search.sharedWith || [];
+      // Get existing shared users
+      const existingSharedWith = search.sharedWith || [];
 
-    // Remove specified users from sharedWith array
-    const updatedSharedWith = existingSharedWith.filter(
-      (share) => !userIds.includes(share.userId.toString()),
-    );
+      // Remove specified users from sharedWith array
+      const updatedSharedWith = existingSharedWith.filter(
+        (share) => !userIds.includes(share.userId.toString()),
+      );
 
-    // Prepare update object
-    const updateObject: Partial<IEnterpriseSemanticSearch> = {
-      sharedWith: updatedSharedWith,
-    };
+      // Prepare update object
+      const updateObject: Partial<IEnterpriseSemanticSearch> = {
+        sharedWith: updatedSharedWith,
+      };
 
-    // If no more shares exist, update isShared and remove shareLink
-    if (updatedSharedWith.length === 0) {
-      updateObject.isShared = false;
-      updateObject.shareLink = undefined;
-    }
+      // If no more shares exist, update isShared and remove shareLink
+      if (updatedSharedWith.length === 0) {
+        updateObject.isShared = false;
+        updateObject.shareLink = undefined;
+      }
 
-    const updatedSearch = await EnterpriseSemanticSearch.findByIdAndUpdate(
-      searchId,
-      updateObject,
-    );
+      const updatedSearch = await EnterpriseSemanticSearch.findByIdAndUpdate(
+        searchId,
+        updateObject,
+      );
 
-    if (!updatedSearch) {
-      throw new InternalServerError('Failed to update search sharing settings');
-    }
+      if (!updatedSearch) {
+        throw new InternalServerError(
+          'Failed to update search sharing settings',
+        );
+      }
 
-    // Prepare response
-    const response = {
-      id: updatedSearch._id,
-      isShared: updatedSearch.isShared,
-      shareLink: updatedSearch.shareLink,
-      sharedWith: updatedSearch.sharedWith,
-      unsharedUsers: userIds,
-      meta: {
+      // Prepare response
+      const response = {
+        id: updatedSearch._id,
+        isShared: updatedSearch.isShared,
+        shareLink: updatedSearch.shareLink,
+        sharedWith: updatedSearch.sharedWith,
+        unsharedUsers: userIds,
+        meta: {
+          requestId,
+          timestamp: new Date().toISOString(),
+          duration: Date.now() - startTime,
+        },
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      logger.error('Error un-sharing search', {
         requestId,
-        timestamp: new Date().toISOString(),
-        duration: Date.now() - startTime,
-      },
-    };
-
-    res.status(200).json(response);
-  } catch (error: any) {
-    logger.error('Error un-sharing search', {
-      requestId,
-      message: 'Error un-sharing search',
-      error: error.message,
-    });
-    next(error);
-  }
-};
+        message: 'Error un-sharing search',
+        error: error.message,
+      });
+      next(error);
+    }
+  };
 
 export const archiveSearch = async (
   req: AuthenticatedUserRequest,

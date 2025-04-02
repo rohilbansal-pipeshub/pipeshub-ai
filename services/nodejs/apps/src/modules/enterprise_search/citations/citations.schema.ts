@@ -19,7 +19,7 @@ export interface ICitationMetadata {
   blockType?: number | string;
   mimeType: string;
   recordId: string;
-  recordIndex: number;
+  chunkIndex: number;
   recordVersion: number;
   topics?: string[];
   languages?: string[];
@@ -34,7 +34,7 @@ export interface ICitationMetadata {
 
 export interface ICitation extends Document {
   content: string;
-  recordIndex: number;
+  chunkIndex: number;
   metadata: ICitationMetadata;
   citationType: string;
   createdAt: Date;
@@ -75,7 +75,7 @@ const citationMetadataSchema = new Schema<ICitationMetadata>({
 const citationSchema = new Schema<ICitation>(
   {
     content: { type: String, required: true },
-    recordIndex: { type: Number, required: true },
+    chunkIndex: { type: Number, required: true },
     metadata: { type: citationMetadataSchema, required: true },
     citationType: { type: String, required: true },
   },

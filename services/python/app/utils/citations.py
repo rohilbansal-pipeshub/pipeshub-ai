@@ -6,7 +6,7 @@ from dataclasses import dataclass
 class ChatDocCitation:
     content: str
     metadata: Dict[str, Any]
-    recordindex: int
+    chunkindex: int
 
 def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
@@ -74,11 +74,11 @@ def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str
         # Extract document indexes (1-based indexing from template)
         doc_indexes = []
         
-        # Handle different formats of recordIndexes
-        record_indexes = None
+        # Handle different formats of chunkIndexes
+        chunk_indexes = None
         
-        # Function to recursively search for record indexes in nested dictionaries
-        def find_record_indexes(data, visited=None):
+        # Function to recursively search for chunk indexes in nested dictionaries
+        def find_chunk_indexes(data, visited=None):
             if visited is None:
                 visited = set()
                 
@@ -90,59 +90,61 @@ def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str
             
             if isinstance(data, dict):
                 # Check for various possible key names
-                for key in ["recordIndexes", "recordindex", "record_indexes", "RecordIndexes"]:
+                for key in ["chunkIndexes", "chunkindex", "chunk_indexes", "chunkIndexes"]:
                     if key in data:
                         return data[key]
                 
                 # Search nested dictionaries
                 for value in data.values():
-                    result = find_record_indexes(value, visited)
+                    result = find_chunk_indexes(value, visited)
                     if result is not None:
                         return result
             
             # Handle nested array of objects
             elif isinstance(data, list):
                 for item in data:
-                    result = find_record_indexes(item, visited)
+                    result = find_chunk_indexes(item, visited)
                     if result is not None:
                         return result
                         
             return None
         
-        # Try to find record indexes in the response data
-        record_indexes = find_record_indexes(response_data)
+        # Try to find chunk indexes in the response data
+        chunk_indexes = find_chunk_indexes(response_data)
         
         # Fallback: If we still haven't found any indexes and have "answer" field,
         # try parsing the answer text to find numeric references
-        if record_indexes is None and isinstance(response_data, dict) and "answer" in response_data:
+        if chunk_indexes is None and isinstance(response_data, dict) and "answer" in response_data:
             answer_text = response_data["answer"]
             # Look for citation patterns like [1] or [1, 2] in the answer
             import re
             citation_matches = re.findall(r'\[([0-9,\s]+)\]', answer_text)
             if citation_matches:
-                # Use the first match as our record indexes
-                record_indexes = citation_matches[0]
+                # Use the first match as our chunk indexes
+                chunk_indexes = citation_matches[0]
         
-        # If we found record indexes, process them
-        if record_indexes is not None:
+        # If we found chunk indexes, process them
+        if chunk_indexes is not None:
             # Convert to list if it's not already
-            if not isinstance(record_indexes, list):
-                if isinstance(record_indexes, str):
+            if not isinstance(chunk_indexes, list):
+                if isinstance(chunk_indexes, str):
                     # Try to handle comma-separated strings or space-separated
-                    record_indexes = record_indexes.replace('[', '').replace(']', '').replace('"', '').replace("'", "")
+                    chunk_indexes = chunk_indexes.replace('[', '').replace(']', '').replace('"', '').replace("'", "")
                     # Split by comma or space
-                    if ',' in record_indexes:
-                        record_indexes = [r.strip() for r in record_indexes.split(',')]
+                    if ',' in chunk_indexes:
+                        chunk_indexes = [r.strip() for r in chunk_indexes.split(',')]
                     else:
-                        record_indexes = [r.strip() for r in record_indexes.split() if r.strip()]
+                        chunk_indexes = [r.strip() for r in chunk_indexes.split() if r.strip()]
                 else:
-                    record_indexes = [record_indexes]
+                    chunk_indexes = [chunk_indexes]
                     
             # Filter out empty values
-            record_indexes = [idx for idx in record_indexes if idx]
+            chunk_indexes = [idx for idx in chunk_indexes if idx]
             
+            print(chunk_indexes, "chunk_indexes")
+            print(documents, "documents")
             # Process each index
-            for idx in record_indexes:
+            for idx in chunk_indexes:
                 try:
                     # Strip any quotes or spaces
                     if isinstance(idx, str):
@@ -171,7 +173,7 @@ def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str
                 citation = ChatDocCitation(
                     content=content,
                     metadata=metadata,
-                    recordindex=idx+1
+                    chunkindex=idx+1
                 )
                 citations.append(citation)
             except (IndexError, KeyError) as e:
@@ -188,7 +190,7 @@ def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str
         result["citations"] = [
             {
                 "content": cit.content,
-                "recordIndex": cit.recordindex,
+                "chunkIndex": cit.chunkindex,
                 "metadata": cit.metadata,
                 "citationType": "vectordb|document"
             }

@@ -155,7 +155,7 @@ async def askAI(request: Request, query_info: ChatQuery,
         response = await llm.ainvoke(messages)
         
         # Process citations and return response
-        return process_citations(response, results)
+        return process_citations(response, results['searchResults'])
     except Exception as e:
         logger.error(f"Error in askAI: {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))

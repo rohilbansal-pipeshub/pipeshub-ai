@@ -32,7 +32,7 @@ export const configPaths = {
   broker: {
     kafka: '/services/kafka',
   },
-  aiBackend: '/services/queryBackend',
+  aiBackend: '/services/query',
   endpoint: '/services/endpoints',
   url: {
     auth: '/services/nodejs/auth',

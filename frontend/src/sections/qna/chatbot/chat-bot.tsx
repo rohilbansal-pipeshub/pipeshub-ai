@@ -23,7 +23,6 @@ import ExcelViewer from './components/excel-highlighter';
 import ChatMessagesArea from './components/chat-message-area';
 import PdfHighlighterComp from './components/pdf-highlighter';
 
-
 const DRAWER_WIDTH = 300;
 
 const StyledCloseButton = styled(Button)(({ theme }) => ({
@@ -130,7 +129,7 @@ const ChatInterface = () => {
           citationType: citation.citationType,
           createdAt: citation.citationData?.createdAt || new Date().toISOString(),
           updatedAt: citation.citationData?.updatedAt || new Date().toISOString(),
-          recordIndex: citation.citationData.recordIndex || 1,
+          chunkIndex: citation.citationData.chunkIndex || 1,
         })),
       };
     }
@@ -728,8 +727,7 @@ const ChatInterface = () => {
             )}
 
             {/* Render viewer with citations */}
-            {
-            isViewerReady &&
+            {isViewerReady &&
               (pdfUrl || fileBuffer) &&
               aggregatedCitations &&
               // !transitioning &&
