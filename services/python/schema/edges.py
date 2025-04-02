@@ -88,7 +88,7 @@ user_app_relation_schema = {
     "rule": {
         "type": "object",
         "properties": {
-            "syncState": {"type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "COMPLETED", "FAILED"]},
+            "syncState": {"type": "string", "enum": ["NOT_STARTED", "IN_PROGRESS", "PAUSED", "COMPLETED", "FAILED"]},
             "lastSyncUpdate": {"type": "number"},
         },
         "required": ["syncState", "lastSyncUpdate"],

@@ -1259,7 +1259,7 @@ class ArangoService(BaseArangoService):
                 FOR rel in {CollectionNames.USER_APP_RELATION.value}
                     FILTER rel._from == CONCAT('users/', @user_key)
                     FILTER rel._to == CONCAT('apps/', app._key)
-                    UPDATE rel WITH {{ syncState: @state }} IN {CollectionNames.USER_APP_RELATION.value}
+                    UPDATE rel WITH {{ syncState: @state, lastSyncUpdate: @lastSyncUpdate }} IN {CollectionNames.USER_APP_RELATION.value}
                     RETURN NEW
             )
             
@@ -1271,7 +1271,8 @@ class ArangoService(BaseArangoService):
                 bind_vars={
                     'user_key': user_key,
                     'service_type': service_type,
-                    'state': state
+                    'state': state,
+                    'lastSyncUpdate': get_epoch_timestamp_in_ms()
                 }
             )
 

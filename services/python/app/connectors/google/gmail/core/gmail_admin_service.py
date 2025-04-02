@@ -13,8 +13,7 @@ from app.connectors.utils.decorators import exponential_backoff
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.connectors.google.scopes import GOOGLE_CONNECTOR_ENTERPRISE_SCOPES
 from uuid import uuid4
-import aiohttp
-import jwt
+
 from app.utils.time_conversion import parse_timestamp
 
 class GmailAdminService:
@@ -112,7 +111,7 @@ class GmailAdminService:
 
             # Create new user service
             user_service = GmailUserService(
-                config=self.config,
+                config=self.config_service,
                 rate_limiter=self.rate_limiter,
                 google_token_handler=self.google_token_handler,
                 credentials=user_credentials

@@ -580,7 +580,6 @@ class Processor:
 
                 # Format content and sentence data
                 formatted_content += f"\n[Sheet]: {sheet_data['sheet_name']}\n"
-                formatted_content += f"Summary: {sheet_data['sheet_summary']}\n"
 
                 for table in sheet_data['tables']:
                     formatted_content += f"\nTable Summary: {table['summary']}\n"

@@ -32,9 +32,6 @@ Do not include any other text or explanation in your response - only the JSON ar
 
     ("user", """Please convert these rows of data into natural language descriptions.
 
-Sheet Context:
-{sheet_summary}
-
 Table Context:
 {table_summary}
 

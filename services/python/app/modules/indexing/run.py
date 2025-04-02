@@ -104,10 +104,9 @@ class CustomChunker(SemanticChunker):
             metadata_list = [doc.metadata for doc in group]
             
             merged_metadata = self._merge_metadata(metadata_list)
-            
             if len(group) > 1:
                 merged_metadata['blockNum'] = f"{group[0].metadata.get('blockNum', 0)}-{group[-1].metadata.get('blockNum', 0)}"
-                
+
             merged_documents.append(Document(
                 page_content=merged_text,
                 metadata=merged_metadata,

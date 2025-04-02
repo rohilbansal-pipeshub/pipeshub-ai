@@ -86,7 +86,7 @@ class GmailUserService:
     async def _check_and_refresh_token(self):
         """Check token expiry and refresh if needed"""
         if not self.token_expiry:
-            logger.warning("⚠️ Token expiry time not set.")
+            # logger.warning("⚠️ Token expiry time not set.")
             return
         
         if not self.org_id or not self.user_id:

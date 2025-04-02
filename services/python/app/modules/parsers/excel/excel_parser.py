@@ -5,7 +5,6 @@ import os
 from app.utils.logger import logger
 from openpyxl.cell.cell import MergedCell
 from openpyxl.utils import get_column_letter
-from app.core.llm_service import LLMFactory
 from app.modules.parsers.excel.prompt_template import prompt, sheet_summary_prompt, table_summary_prompt, row_text_prompt
 import json
 from datetime import datetime
@@ -44,7 +43,6 @@ class ExcelParser:
                     io.BytesIO(self.file_binary), data_only=True)
             else:
                 self.workbook = load_workbook(self.file_path, data_only=True)
-
             sheets_data = []
             total_rows = 0
             total_cells = 0
@@ -208,62 +206,78 @@ class ExcelParser:
 
             def get_table(start_row, start_col):
                 """Extract a table starting from (start_row, start_col)."""
+                # Find the last column of the table
+                max_col = start_col
+                for col in range(start_col, sheet.max_column + 1):
+                    has_data = False
+                    for r in range(start_row, sheet.max_row + 1):
+                        cell = sheet.cell(row=r, column=col)
+                        if cell.value is not None:
+                            has_data = True
+                            max_col = col
+                            break
+                    if not has_data:
+                        break
+
+                # Find the last row of the table
+                max_row = start_row
+                for row in range(start_row, sheet.max_row + 1):
+                    has_data = False
+                    for col in range(start_col, max_col + 1):
+                        cell = sheet.cell(row=row, column=col)
+                        if cell.value is not None:
+                            has_data = True
+                            max_row = row
+                            break
+                    if not has_data:
+                        break
+
+                # Now process the rectangular table region
                 table_data = []
                 headers = []
-                row = start_row
 
-                # Get the first row as headers
-                first_row = []
-                col = start_col
-                while col <= sheet.max_column:
-                    cell = sheet.cell(row=row, column=col)
+                # Process header row
+                header_cells = []
+                for col in range(start_col, max_col + 1):
+                    cell = sheet.cell(row=start_row, column=col)
+                    header_value = self._process_cell(cell, None, start_row, col)
+                    header_cells.append(header_value)
                     if cell.value is not None:
-                        visited_cells.add((row, col))
-                        first_row.append(
-                            self._process_cell(cell, None, row, col))
-                    else:
-                        break
-                    col += 1
+                        visited_cells.add((start_row, col))
 
-                if first_row:
-                    headers = [cell['value'] for cell in first_row]
-                    table_data.append(first_row)
+                # Only consider it a header row if at least one cell has data
+                if any(cell['value'] is not None for cell in header_cells):
+                    headers = [cell['value'] for cell in header_cells]
+                    table_data.append(header_cells)
+                else:
+                    return {
+                        'headers': [],
+                        'data': [],
+                        'start_row': start_row,
+                        'start_col': start_col,
+                        'end_row': start_row,
+                        'end_col': start_col
+                    }
 
-                # Process remaining rows
-                row += 1
-                while row <= sheet.max_row:
+                # Process data rows within the determined boundaries
+                for row in range(start_row + 1, max_row + 1):
                     row_data = []
-                    empty_row = True
-                    col = start_col
-
-                    while col <= sheet.max_column:
+                    for col in range(start_col, max_col + 1):
                         cell = sheet.cell(row=row, column=col)
-                        header = headers[col - start_col] if col - \
-                            start_col < len(headers) else None
-
+                        header = headers[col - start_col] if col - start_col < len(headers) else None
+                        cell_data = self._process_cell(cell, header, row, col)
                         if cell.value is not None:
-                            empty_row = False
                             visited_cells.add((row, col))
-                            row_data.append(self._process_cell(
-                                cell, header, row, col))
-                        else:
-                            break
-                        col += 1
-
-                    if empty_row:
-                        break
-                    if row_data:
-                        table_data.append(row_data)
-                    row += 1
+                        row_data.append(cell_data)
+                    table_data.append(row_data)
 
                 return {
                     'headers': headers,
-                    # Exclude headers from data
                     'data': table_data[1:] if table_data else [],
                     'start_row': start_row,
                     'start_col': start_col,
-                    'end_row': row - 1,
-                    'end_col': col - 1
+                    'end_row': max_row,
+                    'end_col': max_col
                 }
 
             # Find all tables in the sheet
@@ -285,12 +299,21 @@ class ExcelParser:
             raise
 
     def _process_cell(self, cell, header, row, col):
-        """Process a single cell and return its data"""
-
+        """Process a single cell and return its data with denormalized merged cell values."""
         try:
+            # Check if the cell is a merged cell
             if isinstance(cell, MergedCell):
+                # Look for the merged range that contains this cell.
+                merged_value = None
+                for merged_range in cell.parent.merged_cells.ranges:
+                    if cell.coordinate in merged_range:
+                        # Get the top-left cell of the merged range
+                        top_left_cell = cell.parent.cell(row=merged_range.min_row, column=merged_range.min_col)
+                        merged_value = top_left_cell.value
+                        break
+
                 return {
-                    'value': None,
+                    'value': merged_value,  # Use the top-left cell's value
                     'header': header,
                     'row': row,
                     'column': col,
@@ -304,6 +327,7 @@ class ExcelParser:
                     }
                 }
 
+            # If not a merged cell, process normally.
             return {
                 'value': cell.value,
                 'header': header,
@@ -344,6 +368,10 @@ class ExcelParser:
 
             sheet = self.workbook[sheet_name]
             tables = self.find_tables(sheet)
+            
+            logger.debug(f"Found {len(tables)} tables in sheet: {sheet_name}")
+            logger.debug(f"tables: {tables}")
+            
 
             # Prepare context for LLM with all tables
             tables_context = []
@@ -421,32 +449,32 @@ class ExcelParser:
             logger.error(f"❌ Error getting tables in sheet: {str(e)}")
             raise
 
-    async def get_sheet_summary(self, sheet_name: str, tables: List[Dict[str, Any]]) -> str:
-        """Get a natural language summary of all tables in a sheet"""
-        try:
-            logger.debug(f"Getting sheet summary for: {sheet_name}")
-            # Prepare tables data for the prompt
-            tables_data = []
-            for idx, table in enumerate(tables, 1):
-                sample_data = [
-                    {cell['header']: (cell['value'].isoformat() if isinstance(cell['value'], datetime) else cell['value'])
-                     for cell in row}
-                    for row in table['data'][:3]  # Use first 3 rows as sample
-                ]
-                tables_data.append(f"Table {idx}:\nHeaders: {table['headers']}\n"
-                                   f"Sample data:\n{json.dumps(sample_data, indent=2)}")
+    # async def get_sheet_summary(self, sheet_name: str, tables: List[Dict[str, Any]]) -> str:
+    #     """Get a natural language summary of all tables in a sheet"""
+    #     try:
+    #         logger.debug(f"Getting sheet summary for: {sheet_name}")
+    #         # Prepare tables data for the prompt
+    #         tables_data = []
+    #         for idx, table in enumerate(tables, 1):
+    #             sample_data = [
+    #                 {cell['header']: (cell['value'].isoformat() if isinstance(cell['value'], datetime) else cell['value'])
+    #                  for cell in row}
+    #                 for row in table['data'][:3]  # Use first 3 rows as sample
+    #             ]
+    #             tables_data.append(f"Table {idx}:\nHeaders: {table['headers']}\n"
+    #                                f"Sample data:\n{json.dumps(sample_data, indent=2)}")
 
-            # Get summary from LLM
-            messages = self.sheet_summary_prompt.format_messages(
-                sheet_name=sheet_name,
-                tables_data="\n\n".join(tables_data)
-            )
-            response = await self.llm.ainvoke(messages)
-            return response.content
+    #         # Get summary from LLM
+    #         messages = self.sheet_summary_prompt.format_messages(
+    #             sheet_name=sheet_name,
+    #             tables_data="\n\n".join(tables_data)
+    #         )
+    #         response = await self.llm.ainvoke(messages)
+    #         return response.content
 
-        except Exception as e:
-            logger.error(f"❌ Error getting sheet summary: {str(e)}")
-            raise
+    #     except Exception as e:
+    #         logger.error(f"❌ Error getting sheet summary: {str(e)}")
+    #         raise
 
     async def get_table_summary(self, table: Dict[str, Any]) -> str:
         """Get a natural language summary of a specific table"""
@@ -471,7 +499,7 @@ class ExcelParser:
             logger.error(f"❌ Error getting table summary: {str(e)}")
             raise
 
-    async def get_rows_text(self, rows: List[List[Dict[str, Any]]], sheet_summary: str, table_summary: str) -> List[str]:
+    async def get_rows_text(self, rows: List[List[Dict[str, Any]]], table_summary: str) -> List[str]:
         """Convert multiple rows into natural language text using context from summaries in a single prompt"""
         try:
             logger.debug(f"Getting rows text for: {rows}")
@@ -484,7 +512,6 @@ class ExcelParser:
 
             # Get natural language text from LLM for all rows
             messages = self.row_text_prompt.format_messages(
-                sheet_summary=sheet_summary,
                 table_summary=table_summary,
                 rows_data=json.dumps(rows_data, indent=2)
             )
@@ -527,8 +554,8 @@ class ExcelParser:
         # Get tables in the sheet
         tables = await self.get_tables_in_sheet(sheet_name)
 
-        # Get sheet-level summary
-        sheet_summary = await self.get_sheet_summary(sheet_name, tables)
+        # # Get sheet-level summary
+        # sheet_summary = await self.get_sheet_summary(sheet_name, tables)
 
         # Process each table
         processed_tables = []
@@ -542,7 +569,7 @@ class ExcelParser:
 
             for i in range(0, len(table['data']), batch_size):
                 batch = table['data'][i:i + batch_size]
-                row_texts = await self.get_rows_text(batch, sheet_summary, table_summary)
+                row_texts = await self.get_rows_text(batch, table_summary)
                 
 
                 # Add processed rows to results
@@ -567,10 +594,8 @@ class ExcelParser:
 
         return {
             'sheet_name': sheet_name,
-            'sheet_summary': sheet_summary,
             'tables': processed_tables
         }
-
 
 async def main():
     """Test function to demonstrate Excel parsing with summaries"""
@@ -588,9 +613,6 @@ async def main():
             print(f"{'='*50}")
 
             sheet_data = await parser.process_sheet_with_summaries(sheet_name)
-
-            print("\nSheet Summary:")
-            print(sheet_data['sheet_summary'])
 
             for idx, table in enumerate(sheet_data['tables'], 1):
                 print(f"\nTable {idx} Summary:")
