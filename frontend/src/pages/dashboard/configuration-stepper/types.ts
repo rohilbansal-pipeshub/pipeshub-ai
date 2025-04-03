@@ -6,6 +6,13 @@ export interface OpenAILlmFormValues {
   model: string;
 }
 
+export interface GeminiLlmFormValues {
+  modelType: 'gemini';
+  // clientId: string;
+  apiKey: string;
+  model: string;
+}
+
 // Azure OpenAI specific fields
 export interface AzureLlmFormValues {
   modelType: 'azure';
@@ -16,7 +23,7 @@ export interface AzureLlmFormValues {
 }
 
 // Union type for LLM form values
-export type LlmFormValues = OpenAILlmFormValues | AzureLlmFormValues;
+export type LlmFormValues = OpenAILlmFormValues | AzureLlmFormValues | GeminiLlmFormValues;
 
 
 export const storageTypes = {

@@ -429,10 +429,10 @@ const ConfigurationStepper: React.FC<ConfigurationStepperProps> = ({ open, onClo
       const llmConfig = {
         llm: [
           {
-            provider: llmValues!.modelType === 'openai' ? 'openAI' : 'azureOpenAI',
+            provider: llmValues!.modelType === 'openai' ? 'openAI' : llmValues!.modelType ==='gemini' ? 'gemini' :'azureOpenAI',
             configuration: (() => {
               // For OpenAI config
-              if (llmValues!.modelType === 'openai') {
+              if (llmValues!.modelType === 'openai' || llmValues!.modelType ==='gemini') {
                 const config: any = {
                   apiKey: llmValues!.apiKey,
                   model: llmValues!.model,

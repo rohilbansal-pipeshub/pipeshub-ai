@@ -29,7 +29,7 @@ import { Iconify } from 'src/components/iconify';
 
 // LLM form values interfaces
 interface LlmFormValues {
-  modelType: 'openAI' | 'azureOpenAI';
+  modelType: 'openAI' | 'azureOpenAI' | 'gemini';
   apiKey: string;
   model: string;
   // clientId?: string;
@@ -40,6 +40,12 @@ interface LlmFormValues {
 interface OpenAILlmFormValues {
   modelType: 'openAI';
   // clientId: string;
+  apiKey: string;
+  model: string;
+}
+
+interface GeminiLlmFormValues {
+  modelType: 'gemini';
   apiKey: string;
   model: string;
 }
@@ -76,6 +82,14 @@ const openaiSchema = z.object({
   model: z.string().min(1, 'Model is required'),
 });
 
+// Zod schema for Gemini validation
+const geminiSchema = z.object({
+  modelType: z.literal('gemini'),
+  // clientId: z.string().min(1, 'Client ID is required'),
+  apiKey: z.string().min(1, 'API Key is required'),
+  model: z.string().min(1, 'Model is required'),
+});
+
 // Zod schema for Azure OpenAI validation
 const azureSchema = z.object({
   modelType: z.literal('azureOpenAI'),
@@ -89,7 +103,7 @@ const azureSchema = z.object({
 });
 
 // Combined schema using discriminated union
-const llmSchema = z.discriminatedUnion('modelType', [openaiSchema, azureSchema]);
+const llmSchema = z.discriminatedUnion('modelType', [openaiSchema, azureSchema, geminiSchema]);
 
 // Utility functions for API interaction
 const getLlmConfig = async (): Promise<LlmFormValues | null> => {
@@ -101,10 +115,16 @@ const getLlmConfig = async (): Promise<LlmFormValues | null> => {
     if (data.llm && data.llm.length > 0) {
       const llmConfig = data.llm[0];
       const config = llmConfig.configuration;
-      
+
       // Set the modelType based on the provider
-      const modelType = llmConfig.provider === 'azureOpenAI' ? 'azureOpenAI' : 'openAI';
-      
+      let modelType: 'openAI' | 'azureOpenAI' | 'gemini';
+      if (llmConfig.provider === 'azureOpenAI') {
+        modelType = 'azureOpenAI';
+      } else if (llmConfig.provider === 'gemini') {
+        modelType = 'gemini';
+      } else {
+        modelType = 'openAI';
+      }
       // Return the configuration with the correct modelType
       return {
         ...config,
@@ -157,14 +177,15 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [showOpenAIPassword, setShowOpenAIPassword] = useState(false);
+    const [showGeminiPassword, setShowGeminiPassword] = useState(false);
     const [showAzurePassword, setShowAzurePassword] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [formSubmitSuccess, setFormSubmitSuccess] = useState(false);
     const [fetchError, setFetchError] = useState<boolean>(false);
 
-    const [modelType, setModelType] = useState<'openAI' | 'azureOpenAI'>(
-      provider === 'Azure OpenAI' ? 'azureOpenAI' : 'openAI'
+    const [modelType, setModelType] = useState<'openAI' | 'azureOpenAI' | 'gemini'>(
+      provider === 'Azure OpenAI' ? 'azureOpenAI' : provider === 'Gemini' ? 'gemini' : 'openAI'
     );
 
     // Create separate forms for OpenAI and Azure
@@ -178,6 +199,22 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
       mode: 'onChange',
       defaultValues: {
         modelType: 'openAI',
+        // clientId: '',
+        apiKey: '',
+        model: '',
+      },
+    });
+
+    const {
+      control: geminiControl,
+      handleSubmit: handleGeminiSubmit,
+      reset: resetGemini,
+      formState: { isValid: isGeminiValid },
+    } = useForm<GeminiLlmFormValues>({
+      resolver: zodResolver(geminiSchema),
+      mode: 'onChange',
+      defaultValues: {
+        modelType: 'gemini',
         // clientId: '',
         apiKey: '',
         model: '',
@@ -218,6 +255,22 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
       }
     };
 
+    const onGeminiSubmit: SubmitHandler<GeminiLlmFormValues> = async (data) => {
+      try {
+        await updateLlmConfig(data, 'gemini');
+        if (onSaveSuccess) {
+          onSaveSuccess();
+        }
+        setIsEditing(false);
+        setFormSubmitSuccess(true);
+      } catch (error) {
+        const errorMessage = error.response?.data?.message || 'Failed to save Gemini configuration';
+        setSaveError(errorMessage);
+        console.error('Error saving Gemini configuration:', error);
+        setFormSubmitSuccess(false);
+      }
+    };
+
     const onAzureSubmit: SubmitHandler<AzureLlmFormValues> = async (data) => {
       try {
         await updateLlmConfig(data, 'azureOpenAI');
@@ -246,9 +299,11 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
           if (modelType === 'openAI') {
             // This executes the form submission
             handleOpenAISubmit(onOpenAISubmit)();
-          } else {
+          } else if (modelType === 'azureOpenAI') {
             // This executes the form submission
             handleAzureSubmit(onAzureSubmit)();
+          } else if (modelType === 'gemini') {
+            handleGeminiSubmit(onGeminiSubmit)();
           }
 
           // Wait for a short time to allow the form submission to complete
@@ -284,7 +339,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
         try {
           const config = await getLlmConfig();
           setFetchError(false); // Reset fetch error flag on success
-          
+
           if (config) {
             // Set the model type based on the configuration
             if (config.modelType) {
@@ -299,6 +354,12 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                 endpoint: config.endpoint || '',
                 apiKey: config.apiKey || '',
                 deploymentName: config.deploymentName || '',
+                model: config.model || '',
+              });
+            } else if (config.modelType === 'gemini') {
+              resetGemini({
+                modelType: 'gemini',
+                apiKey: config.apiKey || '',
                 model: config.model || '',
               });
             } else {
@@ -318,6 +379,12 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
               apiKey: '',
               model: '',
             });
+            resetGemini({
+              modelType: 'gemini',
+              // clientId: '',
+              apiKey: '',
+              model: '',
+            });
             resetAzure({
               modelType: 'azureOpenAI',
               endpoint: '',
@@ -330,10 +397,16 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
           console.error('Failed to load LLM configuration:', error);
           setFetchError(true); // Set fetch error flag on failure
           setSaveError('Failed to load configuration. View-only mode enabled.');
-          
+
           // Still reset the forms with default values to display content
           resetOpenAI({
             modelType: 'openAI',
+            // clientId: '',
+            apiKey: '',
+            model: '',
+          });
+          resetGemini({
+            modelType: 'gemini',
             // clientId: '',
             apiKey: '',
             model: '',
@@ -351,7 +424,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
       };
 
       fetchConfig();
-    }, [resetOpenAI, resetAzure]);
+    }, [resetOpenAI, resetAzure, resetGemini]);
 
     // Reset saveError when it changes
     useEffect(() => {
@@ -369,12 +442,21 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
 
     // Notify parent of validation status
     useEffect(() => {
-      const isCurrentFormValid = modelType === 'openAI' ? isOpenAIValid : isAzureValid;
+      let isCurrentFormValid = false;
+
+      if (modelType === 'openAI') {
+        isCurrentFormValid = isOpenAIValid;
+      } else if (modelType === 'azureOpenAI') {
+        isCurrentFormValid = isAzureValid;
+      } else if (modelType === 'gemini') {
+        isCurrentFormValid = isGeminiValid; // Assuming you have a validation state for Gemini
+      }
+
       onValidationChange(isCurrentFormValid && isEditing);
-    }, [isOpenAIValid, isAzureValid, isEditing, modelType, onValidationChange]);
+    }, [isOpenAIValid, isAzureValid, isGeminiValid, isEditing, modelType, onValidationChange]);
 
     // Handle model type change
-    const handleModelTypeChange = (newType: 'openAI' | 'azureOpenAI') => {
+    const handleModelTypeChange = (newType: 'openAI' | 'azureOpenAI' | 'gemini') => {
       setModelType(newType);
       // Don't reset forms - we keep separate state for each
     };
@@ -383,51 +465,65 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
     const handleToggleEdit = () => {
       if (isEditing) {
         // Cancel edit - reload current data
-        getLlmConfig().then((config) => {
-          if (config) {
-            // Make sure to set the model type correctly based on configuration
-            if (config.modelType) {
-              setModelType(config.modelType);
-            }
+        getLlmConfig()
+          .then((config) => {
+            if (config) {
+              // Make sure to set the model type correctly based on configuration
+              if (config.modelType) {
+                setModelType(config.modelType);
+              }
 
-            // Reset the appropriate form based on the model type
-            if (config.modelType === 'azureOpenAI') {
-              resetAzure({
-                modelType: 'azureOpenAI',
-                endpoint: config.endpoint || '',
-                apiKey: config.apiKey || '',
-                deploymentName: config.deploymentName || '',
-                model: config.model || '',
-              });
+              // Reset the appropriate form based on the model type
+              if (config.modelType === 'azureOpenAI') {
+                resetAzure({
+                  modelType: 'azureOpenAI',
+                  endpoint: config.endpoint || '',
+                  apiKey: config.apiKey || '',
+                  deploymentName: config.deploymentName || '',
+                  model: config.model || '',
+                });
+              } else if (modelType === 'gemini') {
+                resetGemini({
+                  modelType: 'gemini',
+                  apiKey: config.apiKey || '',
+                  model: config.model || '',
+                });
+              } else {
+                resetOpenAI({
+                  modelType: 'openAI',
+                  // clientId: config.clientId || '',
+                  apiKey: config.apiKey || '',
+                  model: config.model || '',
+                });
+              }
             } else {
+              // Reset both forms to default values
               resetOpenAI({
                 modelType: 'openAI',
-                // clientId: config.clientId || '',
-                apiKey: config.apiKey || '',
-                model: config.model || '',
+                // clientId: '',
+                apiKey: '',
+                model: '',
+              });
+              resetGemini({
+                modelType: 'gemini',
+                // clientId: '',
+                apiKey: '',
+                model: '',
+              });
+              resetAzure({
+                modelType: 'azureOpenAI',
+                endpoint: '',
+                apiKey: '',
+                deploymentName: '',
+                model: '',
               });
             }
-          } else {
-            // Reset both forms to default values
-            resetOpenAI({
-              modelType: 'openAI',
-              // clientId: '',
-              apiKey: '',
-              model: '',
-            });
-            resetAzure({
-              modelType: 'azureOpenAI',
-              endpoint: '',
-              apiKey: '',
-              deploymentName: '',
-              model: '',
-            });
-          }
-        }).catch(error => {
-          console.error('Error reloading configuration:', error);
-          setFetchError(true);
-          setSaveError('Failed to reload configuration. View-only mode enabled.');
-        });
+          })
+          .catch((error) => {
+            console.error('Error reloading configuration:', error);
+            setFetchError(true);
+            setSaveError('Failed to reload configuration. View-only mode enabled.');
+          });
         setSaveError(null);
       }
       setIsEditing(!isEditing);
@@ -467,7 +563,9 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
               Configure your LLM provider to enable AI capabilities in your application.
               {modelType === 'azureOpenAI'
                 ? ' You need an active Azure subscription with Azure OpenAI Service enabled.'
-                : ' Enter your OpenAI API credentials to get started.'}
+                : modelType === 'gemini'
+                  ? 'Enter your Gemini API credentials to get started.'
+                  : ' Enter your OpenAI API credentials to get started.'}
               {fetchError && ' (View-only mode due to connection error)'}
             </Typography>
           </Box>
@@ -487,7 +585,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
           </Box>
         )}
 
-        <Grid container spacing={2.5} sx={{mb:2}}>
+        <Grid container spacing={2.5} sx={{ mb: 2 }}>
           {/* Model Type selector - common for both forms */}
           <Grid item xs={12}>
             <FormControl fullWidth size="small" disabled={!isEditing || fetchError}>
@@ -497,12 +595,13 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                 value={modelType}
                 label="Provider Type"
                 onChange={(e: SelectChangeEvent) => {
-                  const newType = e.target.value as 'openAI' | 'azureOpenAI';
+                  const newType = e.target.value as 'openAI' | 'azureOpenAI' | 'gemini';
                   handleModelTypeChange(newType);
                 }}
               >
                 <MenuItem value="openAI">OpenAI API</MenuItem>
                 <MenuItem value="azureOpenAI">Azure OpenAI Service</MenuItem>
+                <MenuItem value="gemini">Gemini API</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -597,6 +696,96 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                 <Controller
                   name="model"
                   control={openaiControl}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      label="Model Name"
+                      fullWidth
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={
+                        fieldState.error?.message || 'e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo'
+                      }
+                      required
+                      disabled={!isEditing || fetchError}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Iconify icon="mdi:robot" width={18} height={18} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: alpha(theme.palette.text.primary, 0.15),
+                          },
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+            </>
+          )}
+
+          {/* Gemini Form */}
+          {modelType === 'gemini' && (
+            <>
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="apiKey"
+                  control={geminiControl}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      label="API Key"
+                      fullWidth
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message || 'Your Gemini API Key'}
+                      required
+                      disabled={!isEditing || fetchError}
+                      type={showGeminiPassword ? 'text' : 'password'}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Iconify icon="mdi:key" width={18} height={18} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={() => setShowGeminiPassword(!showGeminiPassword)}
+                              edge="end"
+                              size="small"
+                              disabled={!isEditing || fetchError}
+                            >
+                              <Iconify
+                                icon={showGeminiPassword ? 'eva:eye-off-fill' : 'eva:eye-fill'}
+                                width={16}
+                                height={16}
+                              />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: alpha(theme.palette.text.primary, 0.15),
+                          },
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="model"
+                  control={geminiControl}
                   render={({ field, fieldState }) => (
                     <TextField
                       {...field}

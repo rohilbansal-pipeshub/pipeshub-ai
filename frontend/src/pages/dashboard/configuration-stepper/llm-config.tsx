@@ -18,16 +18,28 @@ import {
   IconButton,
   FormControl,
   FormHelperText,
-  InputAdornment
+  InputAdornment,
 } from '@mui/material';
 
 import { Iconify } from 'src/components/iconify';
 
-import type { LlmFormValues, AzureLlmFormValues, OpenAILlmFormValues } from './types';
+import type {
+  LlmFormValues,
+  AzureLlmFormValues,
+  OpenAILlmFormValues,
+  GeminiLlmFormValues,
+} from './types';
 
 // Zod schema for OpenAI validation with more descriptive error messages
 const openaiSchema = z.object({
   modelType: z.literal('openai'),
+  // clientId: z.string().min(1, 'Client ID is required'),
+  apiKey: z.string().min(1, 'API Key is required'),
+  model: z.string().min(1, 'Model is required'),
+});
+
+const geminiSchema = z.object({
+  modelType: z.literal('gemini'),
   // clientId: z.string().min(1, 'Client ID is required'),
   apiKey: z.string().min(1, 'API Key is required'),
   model: z.string().min(1, 'Model is required'),
@@ -43,7 +55,7 @@ const azureSchema = z.object({
 });
 
 // Combined schema using discriminated union
-const llmSchema = z.discriminatedUnion('modelType', [openaiSchema, azureSchema]);
+const llmSchema = z.discriminatedUnion('modelType', [openaiSchema, azureSchema, geminiSchema]);
 
 interface LlmConfigStepProps {
   onSubmit: (data: LlmFormValues) => void;
@@ -53,7 +65,7 @@ interface LlmConfigStepProps {
 
 const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initialValues }) => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [modelType, setModelType] = useState<'openai' | 'azure'>(
+  const [modelType, setModelType] = useState<'openai' | 'azure' | 'gemini'>(
     initialValues?.modelType || 'openai'
   );
 
@@ -67,6 +79,14 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
         deploymentName: (initialValues as AzureLlmFormValues)?.deploymentName || '',
         model: initialValues?.model || '',
       } as AzureLlmFormValues;
+    }
+    if (modelType === 'gemini') {
+      return {
+        modelType: 'gemini' as const,
+        // clientId: (initialValues as OpenAILlmFormValues)?.clientId || '',
+        apiKey: initialValues?.apiKey || '',
+        model: initialValues?.model || '',
+      } as GeminiLlmFormValues;
     }
     return {
       modelType: 'openai' as const,
@@ -89,7 +109,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
   });
 
   // Handle model type change
-  const handleModelTypeChange = (newType: 'openai' | 'azure') => {
+  const handleModelTypeChange = (newType: 'openai' | 'azure' | 'gemini') => {
     setModelType(newType);
     reset(
       newType === 'azure'
@@ -100,12 +120,19 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
             deploymentName: '',
             model: '',
           } as AzureLlmFormValues)
-        : ({
-            modelType: 'openai',
-            // clientId: '',
-            apiKey: '',
-            model: '',
-          } as OpenAILlmFormValues)
+        : newType === 'gemini'
+          ? ({
+              modelType: 'gemini',
+              // clientId: '',
+              apiKey: '',
+              model: '',
+            } as GeminiLlmFormValues)
+          : ({
+              modelType: 'openai',
+              // clientId: '',
+              apiKey: '',
+              model: '',
+            } as OpenAILlmFormValues)
     );
   };
 
@@ -126,7 +153,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
     (window as any).submitLlmForm = async () => {
       // Trigger validation for all fields
       const isFormValid = await trigger();
-      
+
       if (isFormValid) {
         // Use a simple trick to ensure the form submits directly
         const formSubmitHandler = handleSubmit((data) => {
@@ -151,8 +178,6 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
     onSubmit(data);
   };
 
-
-
   return (
     <Box component="form" id="llm-config-form" onSubmit={handleSubmit(onFormSubmit)} noValidate>
       <Typography variant="subtitle1" gutterBottom>
@@ -160,11 +185,12 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
       </Typography>
 
       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-        Configure OpenAI or Azure OpenAI to enable AI features.
+        Configure OpenAI , Azure OpenAI or Gemini to enable AI features.
       </Typography>
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        LLM configuration is required to proceed with setup. All fields marked with <span style={{ color: 'error.main' }}>*</span> are required.
+        LLM configuration is required to proceed with setup. All fields marked with{' '}
+        <span style={{ color: 'error.main' }}>*</span> are required.
       </Alert>
 
       <Grid container spacing={2}>
@@ -179,13 +205,14 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
                   {...field}
                   label="Provider *"
                   onChange={(e: SelectChangeEvent) => {
-                    const newType = e.target.value as 'openai' | 'azure';
+                    const newType = e.target.value as 'openai' | 'azure' | 'gemini';
                     field.onChange(newType);
                     handleModelTypeChange(newType);
                   }}
                 >
                   <MenuItem value="openai">OpenAI</MenuItem>
                   <MenuItem value="azure">Azure OpenAI</MenuItem>
+                  <MenuItem value="gemini">Gemini</MenuItem>
                 </Select>
                 {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
               </FormControl>
@@ -228,7 +255,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
                 render={({ field, fieldState }) => (
                   <TextField
                     {...field}
-                    label='Endpoint'
+                    label="Endpoint"
                     fullWidth
                     size="small"
                     error={!!fieldState.error}
@@ -252,7 +279,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
                 render={({ field, fieldState }) => (
                   <TextField
                     {...field}
-                    label='Deployment Name'
+                    label="Deployment Name"
                     fullWidth
                     size="small"
                     error={!!fieldState.error}
@@ -277,7 +304,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
-                label='API Key'
+                label="API Key"
                 fullWidth
                 size="small"
                 error={!!fieldState.error}
@@ -317,7 +344,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
             render={({ field, fieldState }) => (
               <TextField
                 {...field}
-                label='Model Name'
+                label="Model Name"
                 fullWidth
                 size="small"
                 error={!!fieldState.error}
