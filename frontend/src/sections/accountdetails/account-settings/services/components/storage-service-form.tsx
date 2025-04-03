@@ -113,7 +113,7 @@ const StorageServiceForm = forwardRef<StorageServiceFormRef, StorageServiceFormP
         setIsLoading(true);
         try {
           const config = await getStorageConfig();
-          
+
           // Initialize the form data based on the storage type
           const data = {
             storageType: config?.storageType || storageTypes.LOCAL,
@@ -148,7 +148,7 @@ const StorageServiceForm = forwardRef<StorageServiceFormRef, StorageServiceFormP
     // Validate form and notify parent
     useEffect(() => {
       let isValid = false;
-      
+
       switch (formData.storageType) {
         case storageTypes.LOCAL:
           // Local storage is always valid
@@ -157,23 +157,23 @@ const StorageServiceForm = forwardRef<StorageServiceFormRef, StorageServiceFormP
         case storageTypes.S3:
           isValid = Boolean(
             formData.s3AccessKeyId &&
-            formData.s3SecretAccessKey &&
-            formData.s3Region &&
-            formData.s3BucketName &&
-            !errors.s3AccessKeyId &&
-            !errors.s3SecretAccessKey &&
-            !errors.s3Region &&
-            !errors.s3BucketName
+              formData.s3SecretAccessKey &&
+              formData.s3Region &&
+              formData.s3BucketName &&
+              !errors.s3AccessKeyId &&
+              !errors.s3SecretAccessKey &&
+              !errors.s3Region &&
+              !errors.s3BucketName
           );
           break;
         case storageTypes.AZURE_BLOB:
           isValid = Boolean(
             formData.accountName &&
-            formData.accountKey &&
-            formData.containerName &&
-            !errors.accountName &&
-            !errors.accountKey &&
-            !errors.containerName
+              formData.accountKey &&
+              formData.containerName &&
+              !errors.accountName &&
+              !errors.accountKey &&
+              !errors.containerName
           );
           break;
         default:
@@ -246,18 +246,29 @@ const StorageServiceForm = forwardRef<StorageServiceFormRef, StorageServiceFormP
     const validateField = (name: string, value: string) => {
       let error = '';
 
+      // Mount name validation - add minimum length check
+      if (name === 'mountName' && value.trim() !== '' && value.trim().length < 5) {
+        error = 'Mount name must be at least 5 characters';
+      }
       // S3 fields validation
       if (formData.storageType === storageTypes.S3) {
-        if ((name === 's3AccessKeyId' || name === 's3SecretAccessKey' || 
-            name === 's3Region' || name === 's3BucketName') && value.trim() === '') {
+        if (
+          (name === 's3AccessKeyId' ||
+            name === 's3SecretAccessKey' ||
+            name === 's3Region' ||
+            name === 's3BucketName') &&
+          value.trim() === ''
+        ) {
           error = `${name.replace('s3', '')} is required`;
         }
       }
-      
+
       // Azure Blob fields validation
       if (formData.storageType === storageTypes.AZURE_BLOB) {
-        if ((name === 'accountName' || name === 'accountKey' || 
-            name === 'containerName') && value.trim() === '') {
+        if (
+          (name === 'accountName' || name === 'accountKey' || name === 'containerName') &&
+          value.trim() === ''
+        ) {
           error = `${name} is required`;
         }
       }
@@ -287,10 +298,10 @@ const StorageServiceForm = forwardRef<StorageServiceFormRef, StorageServiceFormP
         const configToSave = {
           storageType: formData.storageType,
           // Include only relevant fields based on storage type
-          ...(formData.storageType === storageTypes.LOCAL && {
-            mountName: formData.mountName,
-            baseUrl: formData.baseUrl,
-          }),
+          ...(formData.storageType === storageTypes.LOCAL &&
+            formData.mountName && { mountName: formData.mountName }),
+          ...(formData.storageType === storageTypes.LOCAL &&
+            formData.baseUrl && { baseUrl: formData.baseUrl }),
           ...(formData.storageType === storageTypes.S3 && {
             s3AccessKeyId: formData.s3AccessKeyId,
             s3SecretAccessKey: formData.s3SecretAccessKey,
@@ -301,14 +312,16 @@ const StorageServiceForm = forwardRef<StorageServiceFormRef, StorageServiceFormP
             endpointProtocol: formData.endpointProtocol,
             accountName: formData.accountName,
             accountKey: formData.accountKey,
-            endpointSuffix: formData.endpointSuffix,
             containerName: formData.containerName,
+          }),
+          ...(formData.storageType === storageTypes.AZURE_BLOB && formData.endpointSuffix && {
+            endpointSuffix: formData.endpointSuffix,
           }),
         };
 
         const response = await updateStorageConfig(configToSave);
         const warningHeader = response.data?.warningMessage;
-        
+
         // Update original data after successful save
         setOriginalData(formData);
 
@@ -318,7 +331,7 @@ const StorageServiceForm = forwardRef<StorageServiceFormRef, StorageServiceFormP
         if (onSaveSuccess) {
           onSaveSuccess();
         }
-        
+
         return {
           success: true,
           warning: warningHeader || undefined,
@@ -327,7 +340,7 @@ const StorageServiceForm = forwardRef<StorageServiceFormRef, StorageServiceFormP
         const errorMessage = 'Failed to save Storage configuration';
         setSaveError(error.message || errorMessage);
         console.error('Error saving Storage config:', error);
-        
+
         // Return error result
         return {
           success: false,
@@ -369,7 +382,8 @@ const StorageServiceForm = forwardRef<StorageServiceFormRef, StorageServiceFormP
           />
           <Box>
             <Typography variant="body2" color="text.secondary">
-              Configure storage settings for your application data. Select a storage type and provide the necessary credentials.
+              Configure storage settings for your application data. Select a storage type and
+              provide the necessary credentials.
             </Typography>
           </Box>
         </Box>
