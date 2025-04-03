@@ -19,10 +19,10 @@ interface CitationHoverCardProps {
   onClose: () => void;
   onViewPdf: (
     url: string,
-    citationMeta : Metadata,
+    citationMeta: Metadata,
     citations: CustomCitation[],
     isExcelFile?: boolean,
-    buffer?: ArrayBuffer,
+    buffer?: ArrayBuffer
   ) => Promise<void>;
   aggregatedCitations: CustomCitation[];
 }
@@ -78,10 +78,9 @@ const CitationHoverCard = ({
 
   const handleOpenPdf = async () => {
     if (citation?.metadata?.recordId) {
-      
       try {
         const isExcelOrCSV = ['csv', 'xlsx', 'xls'].includes(citation.metadata?.extension);
-        console.log(isExcelOrCSV)
+        console.log(isExcelOrCSV);
         // const recordId = citation.metadata?.recordId;
         // const response = await axios.get(`/api/v1/knowledgebase/record/${recordId}`);
         // const { record } = response.data;
@@ -210,7 +209,12 @@ const CitationHoverCard = ({
         <Stack spacing={1.5}>
           {/* Document Header with View Button */}
           <Box
-            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 0.5,
+            }}
           >
             <Typography
               variant="subtitle2"
@@ -225,6 +229,10 @@ const CitationHoverCard = ({
                 alignItems: 'center',
                 gap: 0.75,
                 transition: 'color 0.2s ease-in-out',
+                maxWidth: 'calc(100% - 80px)', // Reserve space for button
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
                 '&:hover': hasRecordId
                   ? {
                       color: 'primary.main',
@@ -232,8 +240,15 @@ const CitationHoverCard = ({
                   : {},
               }}
             >
-              <Icon icon="mdi:file-document-outline" width={16} height={16} />
-              {citation.metadata?.recordName || 'Document'}
+              <Icon
+                icon="mdi:file-document-outline"
+                width={16}
+                height={16}
+                style={{ flexShrink: 0 }}
+              />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {citation.metadata?.recordName || 'Document'}
+              </span>
             </Typography>
 
             <Button
@@ -244,19 +259,25 @@ const CitationHoverCard = ({
               sx={{
                 py: 0.5,
                 px: 1,
-                minWidth: 0,
+                minWidth: '64px', // Fixed minimum width for button
                 height: '28px',
                 borderRadius: '4px',
                 textTransform: 'none',
                 fontSize: '0.75rem',
                 fontWeight: 500,
+                ml: 1, // Add margin to separate from text
+                flexShrink: 0, // Prevent button from shrinking
               }}
             >
-              <Icon icon="mdi:eye-outline" width={14} height={14} style={{ marginRight: '4px' }} />
+              <Icon
+                icon="mdi:eye-outline"
+                width={14}
+                height={14}
+                style={{ marginRight: '4px', flexShrink: 0 }}
+              />
               View
             </Button>
           </Box>
-
           {/* Document Metadata */}
           <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mb: 0.5 }}>
             <Chip
