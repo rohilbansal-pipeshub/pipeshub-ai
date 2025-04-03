@@ -6,10 +6,11 @@ import { KeyValueStoreService } from '../keyValueStore.service';
 import {
   activeUsersFields,
   apiCallCounterFields,
+  keyValues,
   routeUsageFields,
   userActivityFields,
 } from './constants';
-import { ectdPaths } from './paths';
+import { etcdPath } from './paths';
 import { parseBoolean } from '../../../modules/storage/utils/utils';
 
 const logger = Logger.getInstance({
@@ -22,7 +23,7 @@ export class PrometheusService {
   private static instance: PrometheusService;
   private static defaultMetricHost =
     'https://metrics-collector.intellysense.com/collect-metrics';
-  private static defaultPushInterval = 50000;//ms
+  private static defaultPushInterval = 50000; //ms
   private apiCallCounter!: promClient.Counter;
   private activeUsers!: promClient.Gauge;
   private userActivityCounter!: promClient.Counter;
@@ -80,51 +81,56 @@ export class PrometheusService {
 
     // add watch for enable metric collection field
     this.watchEnableMetricCollectionFlag();
-    this.watchKeysForMetricsCollection(ectdPaths.serverUrl);
-    this.watchKeysForMetricsCollection(ectdPaths.pushIntervalMs);
+    this.watchKeysForMetricsCollection(etcdPath);
     PrometheusService.instance = this;
   }
 
   async initAndStartMetricsCollection() {
     try {
-      const metricsServer = await this.getOrSet(ectdPaths.serverUrl, PrometheusService.defaultMetricHost);
+      const metricsServer = await this.getOrSet(
+        keyValues.SERVER_URL,
+        PrometheusService.defaultMetricHost,
+      );
       // metric server ulr
       this.metricsServerUrl =
         metricsServer != null
           ? metricsServer
-          : process.env.METRICS_SERVER_URL || PrometheusService.defaultMetricHost;
+          : process.env.METRICS_SERVER_URL ||
+            PrometheusService.defaultMetricHost;
       // api key
       this.apiKey = await this.getOrSet(
-        ectdPaths.apiKey,
+        keyValues.API_KEY,
         this.generateInstanceId(),
       );
       // random instance id to separate out different user on server
       this.instanceId = this.generateInstanceId();
       // api version
-      this.appVersion = await this.getOrSet(ectdPaths.appVersion, '1.0.0');
+      this.appVersion = await this.getOrSet(keyValues.APP_VERSION, '1.0.0');
       // interval in ms to push metrics
       this.pushIntervalMs = parseInt(
-        await this.getOrSet(ectdPaths.pushIntervalMs, String(PrometheusService.defaultPushInterval)),
+        await this.getOrSet(
+          keyValues.PUSH_INTERVAL,
+          String(PrometheusService.defaultPushInterval),
+        ),
         10,
       );
       this.enableMetricCollection = parseBoolean(
-        await this.getOrSet(ectdPaths.enableMetricCollection, 'true'),
+        await this.getOrSet(keyValues.ENABLE_METRIC_COLLECTION, 'true'),
       );
 
       logger.debug('The Prometheus Configuration:', {
-        'metricsServerUrl': this.metricsServerUrl,
-        'apiKey': this.apiKey,
-        'instanceId': this.instanceId,
-        'appVersion': this.appVersion,
-        'pushIntervalMs': this.pushIntervalMs,
-        'enableMetricCollection': this.enableMetricCollection,
-      })
+        metricsServerUrl: this.metricsServerUrl,
+        apiKey: this.apiKey,
+        instanceId: this.instanceId,
+        appVersion: this.appVersion,
+        pushIntervalMs: this.pushIntervalMs,
+        enableMetricCollection: this.enableMetricCollection,
+      });
 
-    // start the metric collection if metric collection is enabled
-    if (this.enableMetricCollection === true) {
-      this.startMetricsPush();
-    }
-
+      // start the metric collection if metric collection is enabled
+      if (this.enableMetricCollection === true) {
+        this.startMetricsPush();
+      }
     } catch (error) {
       // If fetching from the key-value store fails, use the fallback
       this.metricsServerUrl =
@@ -135,22 +141,20 @@ export class PrometheusService {
 
   watchEnableMetricCollectionFlag() {
     this.kvStore.watchKey(
-      ectdPaths.enableMetricCollection,
+      etcdPath,
       this.startOrStopMetricCollection.bind(this),
     );
   }
 
-  watchKeysForMetricsCollection(key :string) {
-    this.kvStore.watchKey(
-      key,
-      this.initAndStartMetricsCollection.bind(this),
-    );
+  watchKeysForMetricsCollection(key: string) {
+    this.kvStore.watchKey(key, this.initAndStartMetricsCollection.bind(this));
   }
 
   async startOrStopMetricCollection() {
-    const currentValue = parseBoolean(
-      await this.kvStore.get<string>(ectdPaths.enableMetricCollection),
+    const etcdValue = JSON.parse(
+      (await this.kvStore.get<string>(etcdPath)) || '{}',
     );
+    const currentValue = parseBoolean(etcdValue.enableMetricCollection);
 
     if (currentValue === true) {
       logger.debug('Flag is TRUE - Starting metrics push');
@@ -162,12 +166,16 @@ export class PrometheusService {
   }
 
   async getOrSet(key: string, value: string): Promise<string> {
-    const currentValue = await this.kvStore.get<string>(key);
-    if (!currentValue || Object.keys(currentValue).length === 0) {
-      await this.kvStore.set<string>(key, value);
+    const etcdValue = JSON.parse(
+      (await this.kvStore.get<string>(etcdPath)) || '{}',
+    );
+    if (!(key in etcdValue)) {
+      etcdValue[key] = value; // Add the key-value pair while keeping others intact
+      await this.kvStore.set<string>(etcdPath, JSON.stringify(etcdValue)); // Save back to store
       return value;
     }
-    return currentValue;
+
+    return etcdValue[key];
   }
 
   /**
@@ -177,7 +185,10 @@ export class PrometheusService {
     this.stopMetricsPush();
     // Add a small delay to ensure previous interval is fully cleared
     setTimeout(() => {
-      logger.debug('Starting to push metrics to server every', this.pushIntervalMs);
+      logger.debug(
+        'Starting to push metrics to server every',
+        this.pushIntervalMs,
+      );
 
       // Store the interval ID and log it for debugging
       this.pushInterval = setInterval(() => {
@@ -195,8 +206,11 @@ export class PrometheusService {
    * Stop pushing metrics
    */
   stopMetricsPush(): void {
-    logger.debug('Attempting to stop metrics push - Current interval ID:', this.pushInterval);
-    
+    logger.debug(
+      'Attempting to stop metrics push - Current interval ID:',
+      this.pushInterval,
+    );
+
     // Force clear any interval that might exist
     if (this.pushInterval !== null) {
       clearInterval(this.pushInterval);
@@ -213,11 +227,11 @@ export class PrometheusService {
     } else {
       logger.debug('No active push interval to stop (null reference)');
     }
-    
+
     // Safety measure: Check for any global intervals that might be running
     // This is a debugging step to identify potential issues
-    const globalIntervals = Object.keys(global).filter(key => 
-      key.includes('Timeout') || key.includes('Interval')
+    const globalIntervals = Object.keys(global).filter(
+      (key) => key.includes('Timeout') || key.includes('Interval'),
     );
     logger.debug('Current global timers:', globalIntervals.length);
   }

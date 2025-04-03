@@ -155,7 +155,7 @@ export class SamlController {
         );
       }
       const credentialsData = response.data;
-      console.log(credentialsData);
+
       if (!credentialsData.certificate) {
         throw new NotFoundError('Certificate is missing');
       }

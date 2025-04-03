@@ -22,3 +22,11 @@ export const routeUsageFields = {
   description: 'Usage statistics for different routes',
   label: ['route', 'userId', 'orgId', 'email'],
 };
+
+export const keyValues = {
+  API_KEY: 'apiKey',
+  PUSH_INTERVAL: 'pushIntervalMs',
+  APP_VERSION: 'appVersion',
+  ENABLE_METRIC_COLLECTION: 'enableMetricCollection',
+  SERVER_URL: 'serverUrl',
+};
