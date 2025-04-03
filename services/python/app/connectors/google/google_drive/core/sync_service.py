@@ -770,7 +770,12 @@ class DriveSyncEnterpriseService(BaseDriveSyncService):
 
             users = await self.arango_service.get_users(org_id)
 
-            for user in users:
+            for user in users: 
+                sync_state = await self.arango_service.get_user_sync_state(user['email'], Connectors.GOOGLE_DRIVE.value)
+                current_state = sync_state.get('syncState')
+                if current_state == 'COMPLETED':
+                    logger.warning("💥 Drive sync is already completed for user %s", user['email'])
+                    continue
                 # Update user sync state to RUNNING
                 await self.arango_service.update_user_sync_state(
                     user['email'],
@@ -1242,6 +1247,12 @@ class DriveSyncIndividualService(BaseDriveSyncService):
 
             user = await self.arango_service.get_users(org_id, active=True)
             user = user[0]
+            
+            sync_state = await self.arango_service.get_user_sync_state(user['email'], Connectors.GOOGLE_DRIVE.value)
+            current_state = sync_state.get('syncState')
+            if current_state == 'COMPLETED':
+                logger.warning("💥 Drive sync is already completed for user %s", user['email'])
+                return False
 
             # Update user sync state to RUNNING
             await self.arango_service.update_user_sync_state(

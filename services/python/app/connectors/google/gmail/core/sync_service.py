@@ -870,6 +870,12 @@ class GmailSyncEnterpriseService(BaseGmailSyncService):
             account_type = await self.arango_service.get_account_type(org_id=org_id)
 
             for user in users:
+                sync_state = await self.arango_service.get_user_sync_state(user['email'], Connectors.GOOGLE_MAIL.value)
+                current_state = sync_state.get('syncState')
+                if current_state == 'COMPLETED':
+                    logger.warning("💥 Gmail sync is already completed for user %s", user['email'])
+                    continue
+                
                 await self.arango_service.update_user_sync_state(
                     user['email'],
                     'IN_PROGRESS',
@@ -1362,6 +1368,13 @@ class GmailSyncIndividualService(BaseGmailSyncService):
 
             user = await self.arango_service.get_users(org_id, active=True)
             user = user[0]
+            
+            sync_state = await self.arango_service.get_user_sync_state(user['email'], Connectors.GOOGLE_MAIL.value)
+            current_state = sync_state.get('syncState')
+            if current_state == 'COMPLETED':
+                logger.warning("💥 Gmail sync is already completed for user %s", user['email'])
+                return False
+            
             account_type = await self.arango_service.get_account_type(org_id)
             # Update user sync state to RUNNING
             await self.arango_service.update_user_sync_state(
