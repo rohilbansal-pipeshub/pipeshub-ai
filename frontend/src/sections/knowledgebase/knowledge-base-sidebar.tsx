@@ -717,37 +717,37 @@ export default function KnowledgeBaseSideBar({
               )}
             />
 
-            <FilterSectionComponent
+            {/* <FilterSectionComponent
               id="departments"
               icon="mdi:office-building"
               label="Departments"
               filterType="department"
               items={departments}
-            />
+            /> */}
 
-            <FilterSectionComponent
+            {/* <FilterSectionComponent
               id="modules"
               icon="mdi:view-module"
               label="Modules"
               filterType="moduleId"
               items={modules}
-            />
+            /> */}
 
-            <FilterSectionComponent
+            {/* <FilterSectionComponent
               id="tags"
               icon="mdi:tag"
               label="Tags"
               filterType="searchTags"
               items={tags}
-            />
+            /> */}
 
-            <FilterSectionComponent
+            {/* <FilterSectionComponent
               id="categories"
               icon="mdi:format-list-bulleted"
               label="Record Categories"
               filterType="appSpecificRecordType"
               items={recordCategories}
-            />
+            /> */}
           </FiltersContainer>
         </ExpandedContentContainer>
       )}

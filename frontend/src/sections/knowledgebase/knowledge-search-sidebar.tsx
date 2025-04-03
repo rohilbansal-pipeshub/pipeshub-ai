@@ -774,29 +774,29 @@ export default function KnowledgeSearchSideBar({
             )}
           />
 
-          <FilterSectionComponent
+          {/* <FilterSectionComponent
             id="departments"
             icon="mdi:office-building"
             label="Departments"
             filterType="department"
             items={departments}
-          />
+          /> */}
 
-          <FilterSectionComponent
+          {/* <FilterSectionComponent
             id="modules"
             icon="mdi:view-module"
             label="Modules"
             filterType="moduleId"
             items={modules}
-          />
+          /> */}
 
-          <FilterSectionComponent
+          {/* <FilterSectionComponent
             id="categories"
             icon="mdi:format-list-bulleted"
             label="Record Categories"
             filterType="appSpecificRecordType"
             items={recordCategories}
-          />
+          /> */}
           
         
         </FiltersContainer>
