@@ -3,6 +3,8 @@ from enum import Enum
 class LLMProvider(Enum):
     AZURE_OPENAI_PROVIDER = "azureOpenAI"
     OPENAI_PROVIDER = "openAI"
+    GEMINI_PROVIDER = "gemini"
+    VERTEX_GEMINI_PROVIDER = "vertexGemini"
     
 class OCRProvider(Enum):
     AZURE_PROVIDER = "azureDI"

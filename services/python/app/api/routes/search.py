@@ -9,6 +9,7 @@ from app.config.configuration_service import ConfigurationService
 from app.modules.retrieval.retrieval_service import RetrievalService
 from app.modules.retrieval.retrieval_arango import ArangoService
 from app.utils.query_transform import setup_query_transformation
+from app.utils.llm import get_llm
 
 router = APIRouter()
 
@@ -47,6 +48,7 @@ async def get_config_service(request: Request) -> ConfigurationService:
 @inject
 async def search(request: Request, body: SearchQuery, 
                 retrieval_service: RetrievalService = Depends(get_retrieval_service),
+                config_service: ConfigurationService=Depends(get_config_service),
                 arango_service: ArangoService = Depends(get_arango_service)):
     """Perform semantic search across documents"""
     try:       
@@ -60,7 +62,7 @@ async def search(request: Request, body: SearchQuery,
                 )
             
         # Setup query transformation
-        rewrite_chain, expansion_chain = await setup_query_transformation(llm)
+        rewrite_chain, expansion_chain = setup_query_transformation(llm)
 
         # Run query transformations in parallel
         print("body ", body)

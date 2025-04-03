@@ -8,6 +8,50 @@ class ChatDocCitation:
     metadata: Dict[str, Any]
     chunkindex: int
 
+def fix_json_string(json_str):
+    """Fix control characters in JSON string values without parsing."""
+    result = ""
+    in_string = False
+    escaped = False
+    
+    for c in json_str:
+        if escaped:
+            # Previous character was a backslash, this character is escaped
+            result += c
+            escaped = False
+            continue
+            
+        if c == '\\':
+            # This is a backslash, next character will be escaped
+            result += c
+            escaped = True
+            continue
+            
+        if c == '"':
+            # This is a quote, toggle whether we're in a string
+            in_string = not in_string
+            result += c
+            continue
+            
+        if in_string:
+            # We're inside a string, escape control characters properly
+            if c == '\n':
+                result += '\\n'
+            elif c == '\r':
+                result += '\\r'
+            elif c == '\t':
+                result += '\\t'
+            elif ord(c) < 32 or (ord(c) >= 127 and ord(c) <= 159):
+                # Other control characters as unicode escapes
+                result += f'\\u{ord(c):04x}'
+            else:
+                result += c
+        else:
+            # Not in a string, keep as is
+            result += c
+            
+    return result
+
 def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Process the LLM response and extract citations from relevant documents.
@@ -28,6 +72,7 @@ def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str
         else:
             response_content = llm_response
         
+        print(response_content, "response_content")
         # Parse the LLM response if it's a string
         if isinstance(response_content, str):
             try:
@@ -41,6 +86,9 @@ def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str
                 # Handle escaped newlines and other special characters
                 cleaned_content = cleaned_content.replace('\\n', '\n').replace('\\t', '\t')
                 
+                # Apply our fix for control characters in JSON string values
+                cleaned_content = fix_json_string(cleaned_content)
+                
                 # Try to parse the cleaned content
                 response_data = json.loads(cleaned_content)
             except json.JSONDecodeError as e:
@@ -53,6 +101,8 @@ def process_citations(llm_response, documents: List[Dict[str, Any]]) -> Dict[str
                     
                     if start_idx >= 0 and end_idx > start_idx:
                         potential_json = cleaned_content[start_idx:end_idx+1]
+                        # Apply our fix again on the extracted JSON
+                        potential_json = fix_json_string(potential_json)
                         response_data = json.loads(potential_json)
                     else:
                         return {

@@ -6,6 +6,8 @@ from langchain.callbacks.base import BaseCallbackHandler
 from app.utils.logger import logger
 from langchain_community.chat_models import AzureChatOpenAI, ChatOpenAI
 from app.config.ai_models_named_constants import AzureOpenAILLM
+from langchain_google_genai import ChatGoogleGenerativeAI
+
 
 class BaseLLMConfig(BaseModel):
     """Base configuration for all LLM providers"""
@@ -18,6 +20,9 @@ class AzureLLMConfig(BaseLLMConfig):
     azure_endpoint: str
     azure_deployment: str
     azure_api_version: str
+
+class GeminiLLMConfig(BaseLLMConfig):
+    """Gemini-specific configuration"""
 
 class OpenAILLMConfig(BaseLLMConfig):
     """OpenAI-specific configuration"""
@@ -86,6 +91,17 @@ class LLMFactory:
                 temperature=0.4,
                 api_key=config.api_key,
                 organization=config.organization_id,
+                callbacks=[cost_callback]
+            )
+
+        elif isinstance(config, GeminiLLMConfig):
+            return ChatGoogleGenerativeAI(
+                model=config.model,
+                temperature=0,
+                max_tokens=None,
+                timeout=None,
+                max_retries=2,
+                google_api_key=config.api_key,
                 callbacks=[cost_callback]
             )
         

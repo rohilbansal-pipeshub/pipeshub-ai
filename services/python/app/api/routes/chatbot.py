@@ -14,6 +14,7 @@ from app.utils.citations import process_citations
 from app.utils.query_transform import setup_query_transformation
 from app.utils.query_decompose import QueryDecompositionService
 from app.modules.reranker.reranker import RerankerService
+from app.utils.llm import get_llm
 
 router = APIRouter()
 
@@ -47,12 +48,14 @@ async def get_reranker_service(request: Request) -> RerankerService:
     container: AppContainer = request.app.container
     reranker_service = container.reranker_service()
     return reranker_service
+     
 
 @router.post("/chat")
 @inject
 async def askAI(request: Request, query_info: ChatQuery, 
                 retrieval_service: RetrievalService=Depends(get_retrieval_service),
                 arango_service: ArangoService=Depends(get_arango_service),
+                config_service: ConfigurationService=Depends(get_config_service),
                 reranker_service: RerankerService=Depends(get_reranker_service)):
     """Perform semantic search across documents"""
     try:
@@ -81,19 +84,15 @@ async def askAI(request: Request, query_info: ChatQuery,
         else:
             all_queries = [{'query': query_info.query}]
         
-        complete_queries = []
-        for query_dict in all_queries:
-            # Setup query transformation 
-            query = query_dict.get('query')
-            print("Query is ", query)
-            rewrite_chain, expansion_chain = await setup_query_transformation(llm)
-            
+        async def process_decomposed_query(query: str, org_id: str, user_id: str):
+            rewrite_chain, expansion_chain = setup_query_transformation(llm)
+                    
             # Run query transformations in parallel
             rewritten_query, expanded_queries = await asyncio.gather(
                 rewrite_chain.ainvoke(query),
                 expansion_chain.ainvoke(query)
             )
-        
+
             logger.info(f"Rewritten query: {rewritten_query}")
             logger.info(f"Expanded queries: {expanded_queries}")
             
@@ -110,45 +109,75 @@ async def askAI(request: Request, query_info: ChatQuery,
 
             results = await retrieval_service.search_with_filters(
                 queries=unique_queries,
-                org_id=request.state.user.get('orgId'),
-                user_id=request.state.user.get('userId'),
+                org_id=org_id,
+                user_id=user_id,
                 limit=query_info.limit,
                 filter_groups=query_info.filters,
                 arango_service=arango_service
             )
             logger.info("Results from the AI service received")
             # Format conversation history
-            previous_conversations = query_info.previousConversations
             print(results, "formatted_results")
-            template = Template(qna_prompt)
             # Get raw search results
             search_results = results.get('searchResults', [])
-        
+
             # Apply reranking
             if search_results and len(search_results) > 1:
                 # Use the original query for reranking
                 reranked_results = await reranker_service.rerank(
-                    query=query_info.query,
+                    query=query,
                     documents=search_results,
                     top_k=query_info.limit  # Maintain the same limit
                 )
                 # Update results with reranked documents
-                results['searchResults'] = reranked_results
-            
-                print(results, "reranked_results")
-                complete_queries.append(results['searchResults'])
-        # Get search results
-        logger.debug("complete queries", complete_queries)
+                return reranked_results
+                
+        # Execute all query processing in parallel
+        org_id = request.state.user.get('orgId')
+        user_id = request.state.user.get('userId')
+        tasks = [process_decomposed_query(query_dict.get('query'), org_id, user_id) for query_dict in all_queries]
+        all_search_results = await asyncio.gather(*tasks)
         
-
-        rendered_form = template.render(query=query_info.query, rephrased_queries=complete_queries, records = results['searchResults']) 
-
+        # Flatten and deduplicate results based on document ID or other unique identifier
+        # This assumes each result has an 'id' field - adjust according to your data structure
+        flattened_results = []
+        seen_ids = set()
+        print(all_search_results, "all search results")
+        for result_set in all_search_results:
+            for result in result_set:
+                print()
+                flattened_results.append(result)
+                # result_id = result.get('_id')
+                # if result_id not in seen_ids:
+                #     seen_ids.add(result_id)
+                #     flattened_results.append(result)
+        
+        # Re-rank the combined results with the original query for better relevance
+        if len(flattened_results) > 1:
+            final_results = await reranker_service.rerank(
+                query=query_info.query,  # Use original query for final ranking
+                documents=flattened_results,
+                top_k=query_info.limit
+            )
+        else:
+            final_results = flattened_results
+        
+        print(final_results, "final_results")
+        # Prepare the template with the final results
+        template = Template(qna_prompt)
+        rendered_form = template.render(
+            query=query_info.query, 
+            rephrased_queries=[],  # This keeps all query results for reference
+            chunks=final_results
+        )
+        
+        # Prepare messages for LLM
         messages = [
             {"role": "system", "content": "You are a enterprise questions answering expert"}
         ]
-
+        
         # Add conversation history
-        for conversation in previous_conversations:
+        for conversation in query_info.previousConversations:
             if conversation.get('role') == 'user_query':
                 messages.append({"role": "user", "content": conversation.get('content')})
             elif conversation.get('role') == 'bot_response':
@@ -156,11 +185,13 @@ async def askAI(request: Request, query_info: ChatQuery,
         
         # Add current query with context
         messages.append({"role": "user", "content": rendered_form})
+        
         # Make async LLM call
         response = await llm.ainvoke(messages)
-        
+        print(response, "llm response")
         # Process citations and return response
-        return process_citations(response, results['searchResults'])
+        return process_citations(response, final_results)
+        
     except Exception as e:
         logger.error(f"Error in askAI: {str(e)}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))

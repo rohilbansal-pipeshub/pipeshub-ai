@@ -57,7 +57,8 @@ dependencies = [
     "langchain-community==0.3.18",
     "Jinja2==3.1.6",
     "cryptography==44.0.1",
-    "sentence-transformers==3.4.1"
+    "sentence-transformers==3.4.1",
+   "langchain-google-genai==2.1.2"
 ]
 
 [tool.setuptools.packages.find]
