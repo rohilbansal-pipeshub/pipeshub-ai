@@ -87,7 +87,6 @@ export class MongoService {
   private async gracefulShutdown(): Promise<void> {
     try {
       await this.destroy();
-      process.exit(0);
     } catch (error) {
       logger.error('Error during graceful shutdown:', error);
       process.exit(1);

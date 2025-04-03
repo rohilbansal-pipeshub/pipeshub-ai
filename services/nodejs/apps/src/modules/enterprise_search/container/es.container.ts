@@ -1,6 +1,5 @@
 import { Container } from 'inversify';
 import { Logger } from '../../../libs/services/logger.service';
-import { MongoService } from '../../../libs/services/mongo.service';
 import { ConfigurationManagerConfig } from '../../configuration_manager/config/config';
 import { KeyValueStoreService } from '../../../libs/services/keyValueStore.service';
 import { AuthTokenService } from '../../../libs/services/authtoken.service';
@@ -41,11 +40,7 @@ export class EnterpriseSearchAgentContainer {
   ): Promise<void> {
     try {
       // Initialize services
-      const mongoService = new MongoService(appConfig.mongo);
-      await mongoService.initialize();
-      container
-        .bind<MongoService>('MongoService')
-        .toConstantValue(mongoService);
+
       const keyValueStoreService = KeyValueStoreService.getInstance(
         container.get<ConfigurationManagerConfig>('ConfigurationManagerConfig'),
       );
@@ -87,13 +82,29 @@ export class EnterpriseSearchAgentContainer {
   }
 
   static async dispose(): Promise<void> {
-    if (this.instance) {
-      const services = this.instance.getAll<any>('Service');
-      for (const service of services) {
-        if (typeof service.disconnect === 'function') {
-          await service.disconnect();
-        }
+    try {
+      // Get only services that need to be disconnected
+      const keyValueStoreService = this.instance.isBound('KeyValueStoreService')
+        ? this.instance.get<KeyValueStoreService>('KeyValueStoreService')
+        : null;
+
+      // Disconnect services if they have a disconnect method
+      if (keyValueStoreService && keyValueStoreService.isConnected()) {
+        await keyValueStoreService.disconnect();
+        this.logger.info('KeyValueStoreService disconnected successfully');
       }
+
+      this.logger.info(
+        'All Enterprise Search services disconnected successfully',
+      );
+    } catch (error) {
+      this.logger.error(
+        'Error while disconnecting Enterprise Search services',
+        {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      );
+    } finally {
       this.instance = null!;
     }
   }

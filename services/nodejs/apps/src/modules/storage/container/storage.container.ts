@@ -93,15 +93,43 @@ export class StorageContainer {
     }
     return this.instance;
   }
-
   static async dispose(): Promise<void> {
-    if (this.instance) {
-      const services = this.instance.getAll<any>('Service');
-      for (const service of services) {
-        if (typeof service.disconnect === 'function') {
-          await service.disconnect();
+    try {
+      if (!this.instance) {
+        this.logger?.info(
+          'Storage container already disposed or not initialized',
+        );
+        return;
+      }
+
+      // Get only services that need to be disconnected
+      const keyValueStoreService = this.instance.isBound('KeyValueStoreService')
+        ? this.instance.get<KeyValueStoreService>('KeyValueStoreService')
+        : null;
+
+      // Disconnect with timeout
+      if (
+        keyValueStoreService &&
+        typeof keyValueStoreService.disconnect === 'function'
+      ) {
+        try {
+          const disconnectPromise = keyValueStoreService.disconnect();
+          await Promise.race([
+            disconnectPromise,
+            new Promise((resolve) => setTimeout(resolve, 2000)), // 2-second timeout
+          ]);
+        } catch (error) {
+          this.logger?.error('Error disconnecting KeyValueStoreService', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         }
       }
+
+      this.logger?.info('All Storage services disconnected successfully');
+    } catch (error) {
+      this.logger?.error('Error in dispose', { error });
+    } finally {
+      // Always clear the instance reference to prevent memory leaks
       this.instance = null!;
     }
   }

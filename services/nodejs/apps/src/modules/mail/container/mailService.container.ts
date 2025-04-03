@@ -5,11 +5,15 @@ import { AuthTokenService } from '../../../libs/services/authtoken.service';
 import { AuthMiddleware } from '../../../libs/middlewares/auth.middleware';
 import { AppConfig } from '../../tokens_manager/config/config';
 
+const loggerConfig = {
+  service: 'Mail Service',
+};
 export class MailServiceContainer {
   private static instance: Container;
+  private static logger: Logger = Logger.getInstance(loggerConfig);
   static async initialize(appConfig: AppConfig): Promise<Container> {
     const container = new Container();
-    container.bind<Logger>('Logger').toConstantValue(new Logger());
+    container.bind<Logger>('Logger').toConstantValue(this.logger);
     container
       .bind<AppConfig>('AppConfig')
       .toDynamicValue(() => appConfig) // Always fetch latest reference
@@ -57,13 +61,8 @@ export class MailServiceContainer {
 
   static async dispose(): Promise<void> {
     if (this.instance) {
-      const services = this.instance.getAll<any>('Service');
-      for (const service of services) {
-        if (typeof service.disconnect === 'function') {
-          await service.disconnect();
-        }
-      }
       this.instance = null!;
+      this.logger.info('Mail Services Successfully disconnected');
     }
   }
 }

@@ -8,7 +8,6 @@ import { ConfigurationManagerConfig } from '../../configuration_manager/config/c
 import { EntitiesEventProducer } from '../../user_management/services/entity_events.service';
 import { AuthTokenService } from '../../../libs/services/authtoken.service';
 import { AuthMiddleware } from '../../../libs/middlewares/auth.middleware';
-import { ArangoService } from '../../../libs/services/arango.service';
 
 const loggerConfig = {
   service: 'Token Manager',
@@ -48,12 +47,6 @@ export class TokenManagerContainer {
       container
         .bind<MongoService>('MongoService')
         .toConstantValue(mongoService);
-
-      const arangoService = new ArangoService(config.arango);
-      await arangoService.initialize();
-      container
-        .bind<ArangoService>('ArangoService')
-        .toConstantValue(arangoService);
 
       const redisService = new RedisService(
         config.redis,
@@ -117,13 +110,48 @@ export class TokenManagerContainer {
 
   static async dispose(): Promise<void> {
     if (this.instance) {
-      const services = this.instance.getAll<any>('Service');
-      for (const service of services) {
-        if (typeof service.disconnect === 'function') {
-          await service.disconnect();
+      try {
+        // Get specific services that need to be disconnected
+        const mongoService = this.instance.isBound('MongoService')
+          ? this.instance.get<MongoService>('MongoService')
+          : null;
+
+        const redisService = this.instance.isBound('RedisService')
+          ? this.instance.get<RedisService>('RedisService')
+          : null;
+
+        const kafkaService = this.instance.isBound('KafkaService')
+          ? this.instance.get<TokenEventProducer>('KafkaService')
+          : null;
+
+        const entityEventsService = this.instance.isBound(
+          'EntitiesEventProducer',
+        )
+          ? this.instance.get<EntitiesEventProducer>('EntitiesEventProducer')
+          : null;
+        // Disconnect services if they have a disconnect method
+
+        if (redisService && redisService.isConnected()) {
+          await redisService.disconnect();
         }
+        if (kafkaService && kafkaService.isConnected()) {
+          await kafkaService.disconnect();
+        }
+        if (entityEventsService && entityEventsService.isConnected()) {
+          await entityEventsService.disconnect();
+        }
+        if (mongoService && mongoService.isConnected()) {
+          await mongoService.destroy();
+        }
+
+        this.logger.info('All services disconnected successfully');
+      } catch (error) {
+        this.logger.error('Error while disconnecting services', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } finally {
+        this.instance = null!;
       }
-      this.instance = null!;
     }
   }
 }

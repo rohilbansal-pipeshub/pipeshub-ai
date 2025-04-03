@@ -8,6 +8,7 @@ import { CacheOptions, RedisConfig } from '../types/redis.types';
 @injectable()
 export class RedisService {
   private client!: Redis;
+  private connected = false;
   private readonly logger: Logger;
   private readonly defaultTTL = 3600; // 1 hour
   private readonly keyPrefix: string;
@@ -38,10 +39,12 @@ export class RedisService {
     this.client = new Redis(redisOptions);
 
     this.client.on('connect', () => {
+      this.connected = true;
       this.logger.info('Redis client connected');
     });
 
     this.client.on('error', (error) => {
+      this.connected = false;
       this.logger.error('Redis client error', { error });
     });
 
@@ -53,10 +56,14 @@ export class RedisService {
   async disconnect(): Promise<void> {
     try {
       await this.client.quit();
+      this.connected = false;
       this.logger.info('Redis client disconnected');
     } catch (error) {
       this.logger.error('Error disconnecting Redis client', { error });
     }
+  }
+  isConnected(): boolean {
+    return this.connected;
   }
 
   private buildKey(key: string, namespace?: string): string {

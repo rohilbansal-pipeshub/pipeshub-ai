@@ -183,7 +183,7 @@ export class ConfigService {
       apiKey: process.env.QDRANT_API_KEY!,
       host: process.env.QDRANT_HOST || 'localhost',
       port: parseInt(process.env.QDRANT_PORT || '6333', 10),
-      grpcPort: parseInt(process.env.QDRANT_GRPC_PORT!, 10),
+      grpcPort: parseInt(process.env.QDRANT_GRPC_PORT || '6334', 10),
     });
   }
 

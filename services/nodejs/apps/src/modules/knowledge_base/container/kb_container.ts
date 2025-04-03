@@ -110,17 +110,22 @@ export class KnowledgeBaseContainer {
           );
           await recordsEventProducer.stop();
         }
+        const keyValueStoreService = this.instance.isBound(
+          'KeyValueStoreService',
+        )
+          ? this.instance.get<KeyValueStoreService>('KeyValueStoreService')
+          : null;
 
-        // Handle other services
-        const services = this.instance.getAll<any>('Service');
-        for (const service of services) {
-          if (typeof service.disconnect === 'function') {
-            await service.disconnect();
-          }
+        // Disconnect services if they have a disconnect method
+        if (keyValueStoreService && keyValueStoreService.isConnected()) {
+          await keyValueStoreService.disconnect();
+          this.logger.info('KeyValueStoreService disconnected successfully');
         }
 
         this.instance = null!;
-        this.logger.info('All services successfully disposed');
+        this.logger.info(
+          'All services in Knowledge base successfully disposed',
+        );
       } catch (error) {
         this.logger.error('Error during service disposal', {
           error: error instanceof Error ? error.message : 'Unknown error',

@@ -12,15 +12,21 @@ import { KeyValueStoreService } from '../../../libs/services/keyValueStore.servi
 import { AuthTokenService } from '../../../libs/services/authtoken.service';
 import { AuthMiddleware } from '../../../libs/middlewares/auth.middleware';
 import { AppConfig } from '../../tokens_manager/config/config';
+
+const loggerConfig = {
+  service: 'Auth Service Container',
+};
+
 export class AuthServiceContainer {
   private static instance: Container;
+  private static logger: Logger = Logger.getInstance(loggerConfig);
 
   static async initialize(
     configurationManagerConfig: ConfigurationManagerConfig,
     appConfig: AppConfig,
   ): Promise<Container> {
     const container = new Container();
-    container.bind<Logger>('Logger').toConstantValue(new Logger());
+    container.bind<Logger>('Logger').toConstantValue(this.logger);
     container
       .bind<ConfigurationManagerConfig>('ConfigurationManagerConfig')
       .toConstantValue(configurationManagerConfig);
@@ -105,13 +111,35 @@ export class AuthServiceContainer {
   }
   static async dispose(): Promise<void> {
     if (this.instance) {
-      const services = this.instance.getAll<any>('Service');
-      for (const service of services) {
-        if (typeof service.disconnect === 'function') {
-          await service.disconnect();
+      try {
+        // Get specific services that need to be disconnected
+        const redisService = this.instance.isBound('RedisService')
+          ? this.instance.get<RedisService>('RedisService')
+          : null;
+
+        const keyValueStoreService = this.instance.isBound(
+          'KeyValueStoreService',
+        )
+          ? this.instance.get<KeyValueStoreService>('KeyValueStoreService')
+          : null;
+
+        // Disconnect services if they have a disconnect method
+        if (redisService && redisService.isConnected()) {
+          await redisService.disconnect();
         }
+
+        if (keyValueStoreService && keyValueStoreService.isConnected()) {
+          await keyValueStoreService.disconnect();
+        }
+
+        this.logger.info('All auth services disconnected successfully');
+      } catch (error) {
+        this.logger.error('Error while disconnecting auth services', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } finally {
+        this.instance = null!;
       }
-      this.instance = null!;
     }
   }
 }

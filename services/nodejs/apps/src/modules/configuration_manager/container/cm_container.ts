@@ -90,13 +90,44 @@ export class ConfigurationManagerContainer {
 
   static async dispose(): Promise<void> {
     if (this.instance) {
-      const services = this.instance.getAll<any>('Service');
-      for (const service of services) {
-        if (typeof service.disconnect === 'function') {
-          await service.disconnect();
+      try {
+        // Get only services that need to be disconnected
+        const keyValueStoreService = this.instance.isBound(
+          'KeyValueStoreService',
+        )
+          ? this.instance.get<KeyValueStoreService>('KeyValueStoreService')
+          : null;
+
+        const entityEventsService = this.instance.isBound(
+          'EntitiesEventProducer',
+        )
+          ? this.instance.get<EntitiesEventProducer>('EntitiesEventProducer')
+          : null;
+
+        // Disconnect services if they have a disconnect method
+        if (keyValueStoreService && keyValueStoreService.isConnected()) {
+          await keyValueStoreService.disconnect();
+          this.logger.info('KeyValueStoreService disconnected successfully');
         }
+
+        if (entityEventsService && entityEventsService.isConnected()) {
+          await entityEventsService.disconnect();
+          this.logger.info('EntitiesEventProducer disconnected successfully');
+        }
+
+        this.logger.info(
+          'All configuration manager services disconnected successfully',
+        );
+      } catch (error) {
+        this.logger.error(
+          'Error while disconnecting configuration manager services',
+          {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+        );
+      } finally {
+        this.instance = null!;
       }
-      this.instance = null!;
     }
   }
 }

@@ -311,14 +311,16 @@ export class Application {
       this.notificationContainer
         .get<NotificationService>(NotificationService)
         .shutdown();
-      await TokenManagerContainer.dispose();
+      await NotificationContainer.dispose();
       await StorageContainer.dispose();
+      await UserManagerContainer.dispose();
+      await AuthServiceContainer.dispose();
       await EnterpriseSearchAgentContainer.dispose();
+      await TokenManagerContainer.dispose();
       await KnowledgeBaseContainer.dispose();
       await ConfigurationManagerContainer.dispose();
-      await AuthServiceContainer.dispose();
-      await UserManagerContainer.dispose();
-      await NotificationContainer.dispose();
+      await MailServiceContainer.dispose();
+
       this.logger.info('Application stopped successfully');
     } catch (error) {
       this.logger.error('Error stopping application', {

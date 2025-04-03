@@ -11,8 +11,12 @@ import { AuthTokenService } from '../../../libs/services/authtoken.service';
 import { AuthMiddleware } from '../../../libs/middlewares/auth.middleware';
 import { AppConfig } from '../../tokens_manager/config/config';
 
+const loggerConfig = {
+  service: 'User Manager Container',
+};
 export class UserManagerContainer {
   private static instance: Container;
+  private static logger: Logger = Logger.getInstance(loggerConfig);
 
   static async initialize(
     configurationManagerConfig: ConfigurationManagerConfig,
@@ -20,7 +24,7 @@ export class UserManagerContainer {
   ): Promise<Container> {
     const container = new Container();
 
-    container.bind<Logger>('Logger').toConstantValue(new Logger());
+    container.bind<Logger>('Logger').toConstantValue(this.logger);
 
     container
       .bind<ConfigurationManagerConfig>('ConfigurationManagerConfig')
@@ -109,13 +113,39 @@ export class UserManagerContainer {
   }
   static async dispose(): Promise<void> {
     if (this.instance) {
-      const services = this.instance.getAll<any>('Service');
-      for (const service of services) {
-        if (typeof service.disconnect === 'function') {
-          await service.disconnect();
+      try {
+        // Get specific services that need to be disconnected
+
+        const keyValueStoreService = this.instance.isBound(
+          'KeyValueStoreService',
+        )
+          ? this.instance.get<KeyValueStoreService>('KeyValueStoreService')
+          : null;
+
+        // Disconnect services if they have a disconnect method
+        if (keyValueStoreService && keyValueStoreService.isConnected()) {
+          await keyValueStoreService.disconnect();
+          this.logger.info('KeyValueStoreService disconnected successfully');
         }
+        const entityEventsService = this.instance.isBound(
+          'EntitiesEventProducer',
+        )
+          ? this.instance.get<EntitiesEventProducer>('EntitiesEventProducer')
+          : null;
+        // Disconnect services if they have a disconnect method
+        if (entityEventsService && entityEventsService.isConnected()) {
+          this.logger.info('Entity Events disconnected successfully');
+          await entityEventsService.stop();
+        }
+
+        this.logger.info('All User Manager services disconnected successfully');
+      } catch (error) {
+        this.logger.error('Error while disconnecting services', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      } finally {
+        this.instance = null!;
       }
-      this.instance = null!;
     }
   }
 }
