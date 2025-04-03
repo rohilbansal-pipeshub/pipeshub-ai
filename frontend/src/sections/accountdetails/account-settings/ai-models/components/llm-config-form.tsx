@@ -32,14 +32,14 @@ interface LlmFormValues {
   modelType: 'openAI' | 'azureOpenAI';
   apiKey: string;
   model: string;
-  clientId?: string;
+  // clientId?: string;
   endpoint?: string;
   deploymentName?: string;
 }
 
 interface OpenAILlmFormValues {
   modelType: 'openAI';
-  clientId: string;
+  // clientId: string;
   apiKey: string;
   model: string;
 }
@@ -71,7 +71,7 @@ export interface LlmConfigFormRef {
 // Zod schema for OpenAI validation
 const openaiSchema = z.object({
   modelType: z.literal('openAI'),
-  clientId: z.string().min(1, 'Client ID is required'),
+  // clientId: z.string().min(1, 'Client ID is required'),
   apiKey: z.string().min(1, 'API Key is required'),
   model: z.string().min(1, 'Model is required'),
 });
@@ -178,7 +178,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
       mode: 'onChange',
       defaultValues: {
         modelType: 'openAI',
-        clientId: '',
+        // clientId: '',
         apiKey: '',
         model: '',
       },
@@ -305,7 +305,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
               // Default to OpenAI configuration
               resetOpenAI({
                 modelType: 'openAI',
-                clientId: config.clientId || '',
+                // clientId: config.clientId || '',
                 apiKey: config.apiKey || '',
                 model: config.model || '',
               });
@@ -314,7 +314,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
             // If no configuration exists, still display the forms with default values
             resetOpenAI({
               modelType: 'openAI',
-              clientId: '',
+              // clientId: '',
               apiKey: '',
               model: '',
             });
@@ -334,7 +334,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
           // Still reset the forms with default values to display content
           resetOpenAI({
             modelType: 'openAI',
-            clientId: '',
+            // clientId: '',
             apiKey: '',
             model: '',
           });
@@ -402,7 +402,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
             } else {
               resetOpenAI({
                 modelType: 'openAI',
-                clientId: config.clientId || '',
+                // clientId: config.clientId || '',
                 apiKey: config.apiKey || '',
                 model: config.model || '',
               });
@@ -411,7 +411,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
             // Reset both forms to default values
             resetOpenAI({
               modelType: 'openAI',
-              clientId: '',
+              // clientId: '',
               apiKey: '',
               model: '',
             });
@@ -487,7 +487,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
           </Box>
         )}
 
-        <Grid container spacing={2.5}>
+        <Grid container spacing={2.5} sx={{mb:2}}>
           {/* Model Type selector - common for both forms */}
           <Grid item xs={12}>
             <FormControl fullWidth size="small" disabled={!isEditing || fetchError}>
@@ -510,7 +510,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
           {/* OpenAI Form */}
           {modelType === 'openAI' && (
             <>
-              <Grid item xs={12} md={6}>
+              {/* <Grid item xs={12} md={6}>
                 <Controller
                   name="clientId"
                   control={openaiControl}
@@ -541,7 +541,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                     />
                   )}
                 />
-              </Grid>
+              </Grid> */}
 
               <Grid item xs={12} md={6}>
                 <Controller
@@ -593,7 +593,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="model"
                   control={openaiControl}

@@ -28,7 +28,7 @@ import type { LlmFormValues, AzureLlmFormValues, OpenAILlmFormValues } from './t
 // Zod schema for OpenAI validation with more descriptive error messages
 const openaiSchema = z.object({
   modelType: z.literal('openai'),
-  clientId: z.string().min(1, 'Client ID is required'),
+  // clientId: z.string().min(1, 'Client ID is required'),
   apiKey: z.string().min(1, 'API Key is required'),
   model: z.string().min(1, 'Model is required'),
 });
@@ -70,7 +70,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
     }
     return {
       modelType: 'openai' as const,
-      clientId: (initialValues as OpenAILlmFormValues)?.clientId || '',
+      // clientId: (initialValues as OpenAILlmFormValues)?.clientId || '',
       apiKey: initialValues?.apiKey || '',
       model: initialValues?.model || '',
     } as OpenAILlmFormValues;
@@ -102,7 +102,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
           } as AzureLlmFormValues)
         : ({
             modelType: 'openai',
-            clientId: '',
+            // clientId: '',
             apiKey: '',
             model: '',
           } as OpenAILlmFormValues)
@@ -194,7 +194,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
         </Grid>
 
         {/* OpenAI specific fields */}
-        {modelType === 'openai' && (
+        {/* {modelType === 'openai' && (
           <Grid item xs={12}>
             <Controller
               name="clientId"
@@ -216,7 +216,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
               )}
             />
           </Grid>
-        )}
+        )} */}
 
         {/* Azure OpenAI specific fields */}
         {modelType === 'azure' && (
