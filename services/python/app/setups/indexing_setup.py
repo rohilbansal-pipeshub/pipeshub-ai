@@ -11,21 +11,20 @@ from arango import ArangoClient
 from dependency_injector import containers, providers
 from app.config.configuration_service import ConfigurationService, config_node_constants, RedisConfig
 from app.config.arangodb_constants import QdrantCollectionNames
-from app.config.ai_models_named_constants import LLMProvider, AzureOpenAILLM
 from app.core.ai_arango_service import ArangoService
 from app.services.kafka_consumer import KafkaConsumerManager
 from app.modules.extraction.domain_extraction import DomainExtractor
 from app.utils.logger import create_logger
-from app.core.llm_service import AzureLLMConfig, OpenAILLMConfig
 from app.events.events import EventProcessor
 from app.events.processor import Processor
 from app.modules.indexing.run import IndexingPipeline
 from qdrant_client import QdrantClient
 
 
-from app.modules.parsers.docx.docling_docx import DocxParser
-from app.modules.parsers.doc.docparser import DocParser
+from app.modules.parsers.docx.docx_parser import DocxParser
+from app.modules.parsers.docx.docparser import DocParser
 from app.modules.parsers.excel.excel_parser import ExcelParser
+from app.modules.parsers.excel.xls_parser import XLSParser
 from app.modules.parsers.csv.csv_parser import CSVParser
 from app.modules.parsers.html_parser.html_parser import HTMLParser
 from app.modules.parsers.google_files.google_docs_parser import GoogleDocsParser
@@ -129,12 +128,13 @@ class AppContainer(containers.DeclarativeContainer):
         """Async factory for Parsers"""
         parsers = {
             'docx': DocxParser(),
+            'doc': DocParser(),
             'pptx': PPTXParser(),
             'html': HTMLParser(),
             'md': MarkdownParser(),
             'csv': CSVParser(),
             'excel': ExcelParser(),
-            'doc': DocParser(),
+            'xls': XLSParser(),
             'google_docs': GoogleDocsParser(),
             'google_slides': GoogleSlidesParser(),
             'google_sheets': GoogleSheetsParser()

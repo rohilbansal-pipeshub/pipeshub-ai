@@ -8,7 +8,6 @@ import os
 from datetime import datetime
 
 from app.modules.parsers.pdf.ocr_handler import OCRHandler
-from app.modules.parsers.docx.docling_docx import DocxParser
 from app.config.arangodb_constants import CollectionNames
 from app.config.configuration_service import config_node_constants
 from app.config.ai_models_named_constants import OCRProvider, AzureDocIntelligenceModel
@@ -631,6 +630,24 @@ class Processor:
 
         except Exception as e:
             logger.error(f"❌ Error processing Excel document: {str(e)}")
+            raise
+        
+    async def process_xls_document(self, recordName, recordId, version, source, orgId, xls_binary):
+        """Process XLS document and extract structured content"""
+        logger.info(f"🚀 Starting XLS document processing for record: {recordName}")
+        
+        try:
+            # Convert XLS to XLSX binary
+            xls_parser = self.parsers['xls']
+            xlsx_binary = xls_parser.convert_xls_to_xlsx(xls_binary)
+            
+            # Process the converted XLSX using the Excel parser
+            result = await self.process_excel_document(recordName, recordId, version, source, orgId, xlsx_binary)
+            logger.debug(f"📑 XLS document processed successfully")
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Error processing XLS document: {str(e)}")
             raise
 
     async def process_csv_document(self, recordName, recordId, version, source, orgId, csv_binary):

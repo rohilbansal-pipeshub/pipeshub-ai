@@ -49,10 +49,16 @@ async def search(request: Request, body: SearchQuery,
                 retrieval_service: RetrievalService = Depends(get_retrieval_service),
                 arango_service: ArangoService = Depends(get_arango_service)):
     """Perform semantic search across documents"""
-    try:
-        print("orgId is ", request.state.user.get('orgId'))
-       
+    try:       
         llm = retrieval_service.llm
+        if llm is None:
+            llm = await retrieval_service.get_llm()
+            if llm is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to initialize LLM service. LLM configuration is missing."
+                )
+            
         # Setup query transformation
         rewrite_chain, expansion_chain = await setup_query_transformation(llm)
 

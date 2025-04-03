@@ -57,7 +57,14 @@ async def askAI(request: Request, query_info: ChatQuery,
     """Perform semantic search across documents"""
     try:
         llm = retrieval_service.llm
-      
+        if llm is None:
+            llm = await retrieval_service.get_llm()
+            if llm is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to initialize LLM service. LLM configuration is missing."
+                )
+                
         print("useDecomposition", query_info.useDecomposition)
         if query_info.useDecomposition:
             print("calling query decomposition")

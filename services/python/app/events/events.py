@@ -138,7 +138,7 @@ class EventProcessor:
                     orgId="default",
                     doc_binary=file_content
                 )
-            elif extension in ['xlsx', 'xls']:
+            elif extension in ['xlsx']:
                 result = await self.processor.process_excel_document(
                     recordName=f"Record-{record_id}",
                     recordId=record_id,
@@ -146,6 +146,15 @@ class EventProcessor:
                     source=connector,
                     orgId="default",
                     excel_binary=file_content
+                )
+            elif extension == "xls":
+                result = await self.processor.process_xls_document(
+                    recordName=f"Record-{record_id}",
+                    recordId=record_id,
+                    version=record_version,
+                    source=connector,
+                    orgId="default",
+                    xls_binary=file_content
                 )
             elif extension == "csv":
                 result = await self.processor.process_csv_document(
