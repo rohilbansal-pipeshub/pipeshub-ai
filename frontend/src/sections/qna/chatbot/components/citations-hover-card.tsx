@@ -80,7 +80,8 @@ const CitationHoverCard = ({
     if (citation?.metadata?.recordId) {
       
       try {
-        const isExcelOrCSV = ['CSV', 'xlsx', 'xls'].includes(citation.metadata?.extension);
+        const isExcelOrCSV = ['csv', 'xlsx', 'xls'].includes(citation.metadata?.extension);
+        console.log(isExcelOrCSV)
         // const recordId = citation.metadata?.recordId;
         // const response = await axios.get(`/api/v1/knowledgebase/record/${recordId}`);
         // const { record } = response.data;

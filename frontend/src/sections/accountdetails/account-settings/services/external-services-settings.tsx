@@ -49,9 +49,16 @@ const SERVICES_LIST = [
   {
     id: 'qdrant',
     icon: 'carbon:data-vis-4',
-    description: 'Vectordb Database',
+    description: 'Vector database for similarity search and machine learning',
     title: 'Qdrant',
     color: '#FF9800',
+  },
+  {
+    id: 'storage',
+    icon: 'mdi:database',
+    description: 'Configure storage options for your application (Local, S3, Azure Blob)',
+    title: 'Storage Service',
+    color: '#0078D4',
   },
 ];
 
@@ -297,6 +304,27 @@ const ExternalServicesSettings = () => {
           }}
         >
           {warning}
+        </Alert>
+      </Snackbar>
+
+      {/* Error snackbar */}
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={handleCloseError}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        sx={{ mt: 22 }}
+      >
+        <Alert
+          onClose={handleCloseError}
+          severity="error"
+          variant="filled"
+          sx={{
+            width: '80%',
+            boxShadow: '0px 3px 8px rgba(0, 0, 0, 0.12)',
+          }}
+        >
+          {error}
         </Alert>
       </Snackbar>
     </Container>

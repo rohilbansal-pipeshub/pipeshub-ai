@@ -230,6 +230,27 @@ export const updateConnectorPublicUrl = async (url: string): Promise<any> => {
     throw error;
   }
 };
+
+export const getStorageConfig = async() : Promise<any> =>{
+  try {
+    const response = await axios.get(`${API_BASE_URL}/storageConfig`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch storage config', error);
+    throw error;
+  }
+}
+
+export const updateStorageConfig = async(configData : any)=>{
+  try {
+    const response = await axios.post(`${API_BASE_URL}/storageConfig`,configData);
+    return response;
+  } catch (error) {
+    console.error('Failed to update storage config', error);
+    throw error;
+  }
+} 
+
 // export const updateBackendNodejsConfig = async (url: string): Promise<any> => {
 //   try {
 //     const response = await axios.post(`${API_BASE_URL}/frontendPublicUrl`, url);

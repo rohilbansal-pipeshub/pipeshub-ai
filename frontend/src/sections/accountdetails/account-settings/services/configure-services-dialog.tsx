@@ -20,6 +20,7 @@ import KafkaConfigForm from './components/kafka-config-form';
 import QdrantConfigForm from './components/qdrant-config-form';
 import MongoDBConfigForm from './components/mongodb-config-form';
 import ArangoDBConfigForm from './components/arangodb-config-form';
+import StorageServiceForm from './components/storage-service-form';
 // import BackendNodejsConfigForm from './components/backend-nodejs-config-form';
 
 import type { RedisConfigFormRef } from './components/redis-config-form';
@@ -27,6 +28,7 @@ import type { KafkaConfigFormRef } from './components/kafka-config-form';
 import type { QdrantConfigFormRef } from './components/qdrant-config-form';
 import type { MongoDBConfigFormRef } from './components/mongodb-config-form';
 import type { ArangoDBConfigFormRef } from './components/arangodb-config-form';
+import type { StorageServiceFormRef } from './components/storage-service-form';
 // import type { BackendNodejsConfigFormRef } from './components/backend-nodejs-config-form';
 
 import FrontendUrlConfigForm from './components/frontend-url-config-form';
@@ -74,7 +76,11 @@ const SERVICE_CONFIG: ServiceConfigType = {
     title: 'Qdrant',
     color: '#FF9800',
   },
-
+  storage: {
+    icon: 'mdi:database',
+    title: 'Storage Service',
+    color: '#0078D4',
+  },
   frontendPublicUrl: {
     icon: 'mdi:web-check',
     title: 'Frontend Public Url',
@@ -122,6 +128,7 @@ const ConfigureServiceDialog = ({
   const mongoDBConfigFormRef = useRef<MongoDBConfigFormRef>(null);
   const arangoDBConfigFormRef = useRef<ArangoDBConfigFormRef>(null);
   const qdrantConfigFormRef = useRef<QdrantConfigFormRef>(null);
+  const storageServiceFormRef = useRef<StorageServiceFormRef>(null);
 
   const frontendUrlConfigFormRef = useRef<FrontendUrlConfigFormRef>(null);
   const connectorUrlConfigFormRef = useRef<ConnectorUrlConfigFormRef>(null);
@@ -163,13 +170,15 @@ const ConfigureServiceDialog = ({
       case 'qdrant':
         currentRef = qdrantConfigFormRef;
         break;
+      case 'storage':
+        currentRef = storageServiceFormRef;
+        break;
       case 'frontendPublicUrl':
         currentRef = frontendUrlConfigFormRef;
         break;
       case 'connectorPublicUrl':
         currentRef = connectorUrlConfigFormRef;
         break;
-
       default:
         currentRef = null;
     }
@@ -204,7 +213,7 @@ const ConfigureServiceDialog = ({
       }
     } catch (error) {
       console.error('Error saving configuration:', error);
-      setDialogError(`An unexpected error occurred :  ${error.message} `);
+      setDialogError(`An unexpected error occurred: ${error.message}`);
 
       // Also pass the error to parent for snackbar display
       onSave({
@@ -329,6 +338,12 @@ const ConfigureServiceDialog = ({
                 <QdrantConfigForm
                   onValidationChange={handleValidationChange}
                   ref={qdrantConfigFormRef}
+                />
+              )}
+              {serviceType === 'storage' && (
+                <StorageServiceForm
+                  onValidationChange={handleValidationChange}
+                  ref={storageServiceFormRef}
                 />
               )}
               {serviceType === 'connectorPublicUrl' && (

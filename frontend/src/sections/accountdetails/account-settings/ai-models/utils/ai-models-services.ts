@@ -48,7 +48,7 @@ export const getLlmConfig = async () => {
 /**
  * Update LLM configuration
  */
-export const updateLlmConfig = async (config: LlmConfig, name: string = 'OpenAI') => {
+export const updateLlmConfig = async (config: LlmConfig, name: string = 'openAI') => {
   try {
     // First get the current configuration
     const currentConfig = await getAiModelsConfig();

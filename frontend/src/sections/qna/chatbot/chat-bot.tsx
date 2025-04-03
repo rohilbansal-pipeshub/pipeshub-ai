@@ -170,7 +170,7 @@ const ChatInterface = () => {
     setAggregatedCitations(citations);
 
     try {
-      const isExcelOrCSV = ['CSV', 'xlsx', 'xls'].includes(citationMeta?.extension);
+      const isExcelOrCSV = ['csv', 'xlsx', 'xls'].includes(citationMeta?.extension);
       setIsExcel(isExcelOrCSV);
       setIsPdf(citationMeta?.extension === 'pdf');
       const recordId = citationMeta?.recordId;
