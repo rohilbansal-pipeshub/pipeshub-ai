@@ -80,8 +80,8 @@ export class PrometheusService {
     this.register.registerMetric(this.routeUsageCounter);
 
     // add watch for enable metric collection field
-    this.watchEnableMetricCollectionFlag();
     this.watchKeysForMetricsCollection(etcdPath);
+
     PrometheusService.instance = this;
   }
 
@@ -127,23 +127,13 @@ export class PrometheusService {
         enableMetricCollection: this.enableMetricCollection,
       });
 
-      // start the metric collection if metric collection is enabled
-      if (this.enableMetricCollection === true) {
-        this.startMetricsPush();
-      }
+      await this.startOrStopMetricCollection();
     } catch (error) {
       // If fetching from the key-value store fails, use the fallback
       this.metricsServerUrl =
         process.env.METRICS_SERVER_URL || PrometheusService.defaultMetricHost;
       logger.error('Failed to get metrics server URL from KV store:', error);
     }
-  }
-
-  watchEnableMetricCollectionFlag() {
-    this.kvStore.watchKey(
-      etcdPath,
-      this.startOrStopMetricCollection.bind(this),
-    );
   }
 
   watchKeysForMetricsCollection(key: string) {
