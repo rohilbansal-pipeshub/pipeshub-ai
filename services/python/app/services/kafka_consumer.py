@@ -13,9 +13,6 @@ from app.config.configuration_service import ConfigurationService, config_node_c
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Kafka configuration
-config_service = ConfigurationService()
-
 # Concurrency control settings
 MAX_CONCURRENT_TASKS = 5  # Maximum number of messages to process concurrently
 RATE_LIMIT_PER_SECOND = 2  # Maximum number of new tasks to start per second
@@ -81,7 +78,7 @@ async def make_api_call(signed_url_route: str, token: str) -> dict:
                 return {'is_json': False, 'data': data}
 
 class KafkaConsumerManager:
-    def __init__(self, config_service, event_processor):
+    def __init__(self, config_service: ConfigurationService, event_processor):
         self.consumer = None
         self.running = False
         self.event_processor = event_processor

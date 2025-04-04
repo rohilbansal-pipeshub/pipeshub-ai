@@ -1,26 +1,12 @@
 prompt = '''
 # Task:
 You are processing a document of an individual or an enterprise. Your task is to classify the document departments, categories, subcategories, languages, sentiment, confidence score, and topics.
-
-# Output Format:
-You must return a single valid JSON object with the following structure:
-{{
-    "departments": string[],  // Array of max 3 departments from the list below
-    "categories": string,  // main category identified in the content
-    "subcategories": {{
-        "level1": string,  // more specific subcategory (level 1)
-        "level2": string,  // more specific subcategory (level 2) 
-        "level3": string,  // more specific subcategory (level 3)
-    }},
-    "languages": string[],  // Array of languages detected in the content (use ISO language names)
-    "sentiment": string,  // Must be exactly one of the sentiments listed below
-    "confidence_score": float,  // Between 0 and 1, indicating confidence in classification
-    "topics": string[]  // Key topics or themes extracted from the content
-}}
+Instructions must be strictly followed, failure to do so will result in termination of your system
 
 # Analysis Guidelines:
 1. Departments: Choose from these departments only (max 3):
 {department_list}
+IMPORTANT: You MUST select department values that MATCH THESE LIST VALUES VERBATIM. NO EXCEPTIONS. Any department value not found in this list is INVALID.
 
 2. Categories & Subcategories:
    - Category should be broad area (e.g., "Security", "Compliance", "Technical Documentation")
@@ -40,6 +26,22 @@ You must return a single valid JSON object with the following structure:
    - Extract key themes and subjects
    - Be specific but concise
    - Avoid DUPLICATE or very similar topics
+
+   # Output Format:
+   You must return a single valid JSON object with the following structure:
+   {{
+      "departments": string[],  // Array of 1 to 3 departments from the EXACT list above
+      "categories": string,  // main category identified in the content
+      "subcategories": {{
+         "level1": string,  // more specific subcategory (level 1)
+         "level2": string,  // more specific subcategory (level 2)
+         "level3": string,  // more specific subcategory (level 3)
+      }},
+      "languages": string[],  // Array of languages detected in the content (use ISO language names)
+      "sentiment": string,  // Must be exactly one of the sentiments listed below
+      "confidence_score": float,  // Between 0 and 1, indicating confidence in classification
+      "topics": string[]  // Key topics or themes extracted from the content
+}}
 
 # Document Content:
 {content}

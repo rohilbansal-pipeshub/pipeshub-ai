@@ -3,7 +3,7 @@ from typing import List, Literal
 from pydantic import BaseModel, Field
 from langchain.prompts import PromptTemplate
 from langchain.output_parsers import PydanticOutputParser
-from langchain.schema import HumanMessage
+from langchain.schema import HumanMessage, AIMessage
 from app.modules.extraction.prompt_template import prompt
 from app.utils.logger import create_logger
 import uuid
@@ -95,7 +95,7 @@ class DomainExtractor:
             "{sentiment_list}", sentiment_list)
         self.prompt_template = PromptTemplate.from_template(filled_prompt)
 
-        # logger.info(f"🎯 Prompt template: {self.prompt_template}")
+        logger.info(f"🎯 Prompt template: {self.prompt_template}")
 
     async def find_similar_topics(self, new_topic: str) -> str:
         """
@@ -177,22 +177,14 @@ class DomainExtractor:
     async def extract_metadata(self, content: str) -> DocumentClassification:
         """
         Extract metadata from document content using Azure OpenAI.
+        Includes reflection logic to attempt recovery from parsing failures.
         """
         logger.info("🎯 Extracting domain metadata")
         self.llm = await get_llm(self.config_service)
-        try:
-            # Test Azure connection before making the call
-            test_message = [HumanMessage(content="test")]
-            await self.llm.ainvoke(test_message)
-            logger.info("🎯 Connection test successful")
-
-        except Exception as e:
-            logger.error(f"❌ Azure OpenAI connection test failed: {str(e)}")
-            raise ValueError(f"Azure OpenAI connection failed: {str(e)}")
-
+        
         try:
             formatted_prompt = self.prompt_template.format(content=content)
-            logger.info(f"🎯 Prompt formatted successfully")
+            logger.info(f"🎯 Prompt formatted successfully {formatted_prompt}")
 
             messages = [HumanMessage(content=formatted_prompt)]
             response = await self.llm.ainvoke(messages)
@@ -217,10 +209,57 @@ class DomainExtractor:
 
                 return parsed_response
 
-            except Exception as e:
-                logger.error(f"❌ Failed to parse response: {str(e)}")
+            except Exception as parse_error:
+                logger.error(f"❌ Failed to parse response: {str(parse_error)}")
                 logger.error(f"Response content: {response_text}")
-                raise ValueError(f"Failed to parse LLM response: {str(e)}")
+                
+                # Reflection: attempt to fix the validation issue by providing feedback to the LLM
+                try:
+                    logger.info("🔄 Attempting reflection to fix validation issues")
+                    reflection_prompt = f"""
+                    The previous response failed validation with the following error:
+                    {str(parse_error)}
+                    
+                    The response was:
+                    {response_text}
+                    
+                    Please correct your response to match the expected schema. 
+                    Ensure all fields are properly formatted and all required fields are present.
+                    Respond only with valid JSON that matches the DocumentClassification schema.
+                    """
+                    
+                    reflection_messages = [
+                        HumanMessage(content=formatted_prompt),
+                        AIMessage(content=response_text),
+                        HumanMessage(content=reflection_prompt)
+                    ]
+                    
+                    reflection_response = await self.llm.ainvoke(reflection_messages)
+                    reflection_text = reflection_response.content.strip()
+                    
+                    # Clean the reflection response
+                    if reflection_text.startswith("```json"):
+                        reflection_text = reflection_text.replace("```json", "", 1)
+                    if reflection_text.endswith("```"):
+                        reflection_text = reflection_text.rsplit("```", 1)[0]
+                    reflection_text = reflection_text.strip()
+                    
+                    logger.info(f"🎯 Reflection response: {reflection_text}")
+                    
+                    # Try parsing again with the reflection response
+                    parsed_reflection = self.parser.parse(reflection_text)
+                    
+                    # Process topics through similarity check
+                    canonical_topics = await self.process_new_topics(parsed_reflection.topics)
+                    parsed_reflection.topics = canonical_topics
+                    
+                    logger.info("✅ Reflection successful - validation passed on second attempt")
+                    return parsed_reflection
+                    
+                except Exception as reflection_error:
+                    logger.error(f"❌ Reflection attempt failed: {str(reflection_error)}")
+                    # Re-raise the original error after reflection attempt failed
+                    raise ValueError(f"Failed to parse LLM response and reflection attempt failed: {str(parse_error)}")
 
         except Exception as e:
             logger.error(f"❌ Error during metadata extraction: {str(e)}")

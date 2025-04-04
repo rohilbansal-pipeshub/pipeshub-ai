@@ -121,16 +121,7 @@ async def askAI(request: Request, query_info: ChatQuery,
             # Get raw search results
             search_results = results.get('searchResults', [])
 
-            # Apply reranking
-            if search_results and len(search_results) > 1:
-                # Use the original query for reranking
-                reranked_results = await reranker_service.rerank(
-                    query=query,
-                    documents=search_results,
-                    top_k=query_info.limit  # Maintain the same limit
-                )
-                # Update results with reranked documents
-                return reranked_results
+            return search_results
                 
         # Execute all query processing in parallel
         org_id = request.state.user.get('orgId')
