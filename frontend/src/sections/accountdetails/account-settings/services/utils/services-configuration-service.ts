@@ -12,12 +12,10 @@ export interface RedisConfig {
 
 export interface MongoDBConfig {
   uri: string;
-  db: string;
 }
 
 export interface ArangoDBConfig {
   url: string;
-  db: string;
   username: string;
   password: string;
 }
@@ -231,7 +229,7 @@ export const updateConnectorPublicUrl = async (url: string): Promise<any> => {
   }
 };
 
-export const getStorageConfig = async() : Promise<any> =>{
+export const getStorageConfig = async (): Promise<any> => {
   try {
     const response = await axios.get(`${API_BASE_URL}/storageConfig`);
     return response.data;
@@ -239,17 +237,17 @@ export const getStorageConfig = async() : Promise<any> =>{
     console.error('Failed to fetch storage config', error);
     throw error;
   }
-}
+};
 
-export const updateStorageConfig = async(configData : any)=>{
+export const updateStorageConfig = async (configData: any) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/storageConfig`,configData);
+    const response = await axios.post(`${API_BASE_URL}/storageConfig`, configData);
     return response;
   } catch (error) {
     console.error('Failed to update storage config', error);
     throw error;
   }
-} 
+};
 
 // export const updateBackendNodejsConfig = async (url: string): Promise<any> => {
 //   try {

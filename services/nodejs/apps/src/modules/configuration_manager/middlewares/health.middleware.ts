@@ -8,6 +8,7 @@ import net from 'net';
 import { BadRequestError } from '../../../libs/errors/http.errors';
 import { Logger } from '../../../libs/services/logger.service';
 import axios from 'axios';
+import { MONGO_DB_NAME } from '../../../libs/enums/db.enum';
 
 const logger = Logger.getInstance({
   service: 'Health Middleware',
@@ -225,7 +226,7 @@ export const checkMongoHealth = async (
   next: NextFunction,
 ) => {
   const mongoURI = req.body.uri;
-  const dbName = req.body.db;
+  const dbName = MONGO_DB_NAME;
 
   if (!mongoURI || !dbName) {
     throw new BadRequestError('Missing MongoDB URI or Database Name');

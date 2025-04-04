@@ -34,14 +34,12 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
     const theme = useTheme();
     const [formData, setFormData] = useState({
       url: '',
-      db: '',
       username: '',
       password: '',
     });
 
     const [errors, setErrors] = useState({
       url: '',
-      db: '',
       username: '',
       password: '',
     });
@@ -52,7 +50,6 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
     const [isEditing, setIsEditing] = useState(false);
     const [originalData, setOriginalData] = useState({
       url: '',
-      db: '',
       username: '',
       password: '',
     });
@@ -71,7 +68,6 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
 
           const data = {
             url: config?.url || '',
-            db: config?.db || '',
             username: config?.username || '',
             password: config?.password || '',
           };
@@ -92,16 +88,13 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
     useEffect(() => {
       const isValid =
         formData.url.trim() !== '' &&
-        formData.db.trim() !== '' &&
         formData.username.trim() !== '' &&
         !errors.url &&
-        !errors.db &&
         !errors.username;
 
       // Only notify about validation if in edit mode and has changes
       const hasChanges =
         formData.url !== originalData.url ||
-        formData.db !== originalData.db ||
         formData.username !== originalData.username ||
         formData.password !== originalData.password;
 
@@ -127,8 +120,6 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
 
       if (name === 'url' && value.trim() === '') {
         error = 'URL is required';
-      } else if (name === 'db' && value.trim() === '') {
-        error = 'Database name is required';
       } else if (name === 'username' && value.trim() === '') {
         error = 'Username is required';
       }
@@ -146,7 +137,6 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
         setFormData(originalData);
         setErrors({
           url: '',
-          db: '',
           username: '',
           password: '',
         });
@@ -162,7 +152,6 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
       try {
         const response = await updateArangoDBConfig({
           url: formData.url,
-          db: formData.db,
           username: formData.username,
           password: formData.password,
         });
@@ -171,7 +160,6 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
         // Update original data after successful save
         setOriginalData({
           url: formData.url,
-          db: formData.db,
           username: formData.username,
           password: formData.password,
         });
@@ -249,7 +237,7 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
         </Box>
 
         <Grid container spacing={2.5}>
-          <Grid item xs={12} md={6}>
+          <Grid item md={12} xs={12}>
             <TextField
               fullWidth
               label="ArangoDB URL"
@@ -266,36 +254,6 @@ const ArangoDBConfigForm = forwardRef<ArangoDBConfigFormRef, ArangoDBConfigFormP
                 startAdornment: (
                   <InputAdornment position="start">
                     <Iconify icon="mdi:link" width={18} height={18} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: alpha(theme.palette.text.primary, 0.15),
-                  },
-                },
-              }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Database Name"
-              name="db"
-              value={formData.db}
-              onChange={handleChange}
-              placeholder="database-name"
-              error={Boolean(errors.db)}
-              helperText={errors.db || 'ArangoDB database name'}
-              required
-              size="small"
-              disabled={!isEditing}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Iconify icon="mdi:database" width={18} height={18} />
                   </InputAdornment>
                 ),
               }}

@@ -30,6 +30,7 @@ import { DefaultStorageConfig } from '../../tokens_manager/services/cm.service';
 import { AppConfig } from '../../tokens_manager/config/config';
 import { generateFetchConfigAuthToken } from '../../auth/utils/generateAuthToken';
 import axios from 'axios';
+import { ARANGO_DB_NAME, MONGO_DB_NAME } from '../../../libs/enums/db.enum';
 
 const logger = Logger.getInstance({
   service: 'ConfigurationManagerController',
@@ -479,7 +480,8 @@ export const createArangoDbConfig =
   (keyValueStoreService: KeyValueStoreService) =>
   async (req: AuthenticatedUserRequest, res: Response, next: NextFunction) => {
     try {
-      const { url, username, password, db } = req.body;
+      const { url, username, password } = req.body;
+      const db = ARANGO_DB_NAME;
       const configManagerConfig = loadConfigurationManagerConfig();
       const encryptedArangoDBConfig = EncryptionService.getInstance(
         configManagerConfig.algorithm,
@@ -531,7 +533,8 @@ export const createMongoDbConfig =
   (keyValueStoreService: KeyValueStoreService) =>
   async (req: AuthenticatedUserRequest, res: Response, next: NextFunction) => {
     try {
-      const { uri, db } = req.body;
+      const { uri } = req.body;
+      const db = MONGO_DB_NAME;
       const configManagerConfig = loadConfigurationManagerConfig();
       const encryptedMongoDBConfig = EncryptionService.getInstance(
         configManagerConfig.algorithm,

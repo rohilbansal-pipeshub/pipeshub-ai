@@ -59,7 +59,7 @@ export const loadConfigurationManagerConfig =
     return {
       storeType: process.env.STORE_TYPE! || StoreType.Etcd3,
       storeConfig: {
-        host: process.env.STORE_HOST! || 'http://localhost',
+        host: process.env.ETCD_HOST! || 'http://localhost',
         port: parseInt(process.env.STORE_PORT!, 10) || 2379,
         dialTimeout: parseInt(process.env.STORE_DIAL_TIMEOUT!, 10) || 2000,
       },

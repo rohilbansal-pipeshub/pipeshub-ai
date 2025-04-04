@@ -34,12 +34,10 @@ const MongoDBConfigForm = forwardRef<MongoDBConfigFormRef, MongoDBConfigFormProp
     const theme = useTheme();
     const [formData, setFormData] = useState({
       uri: '',
-      database: '',
     });
 
     const [errors, setErrors] = useState({
       uri: '',
-      database: '',
     });
 
     const [isLoading, setIsLoading] = useState(false);
@@ -48,7 +46,6 @@ const MongoDBConfigForm = forwardRef<MongoDBConfigFormRef, MongoDBConfigFormProp
     const [isEditing, setIsEditing] = useState(false);
     const [originalData, setOriginalData] = useState({
       uri: '',
-      database: '',
     });
 
     // Expose the handleSave method to the parent component
@@ -65,12 +62,10 @@ const MongoDBConfigForm = forwardRef<MongoDBConfigFormRef, MongoDBConfigFormProp
 
           // Parse database from URI if it exists in the current config
           const uri = config?.uri || '';
-          const database = config?.db || '';
 
           // Set both current and original data
           const data = {
             uri,
-            database,
           };
 
           setFormData(data);
@@ -87,15 +82,10 @@ const MongoDBConfigForm = forwardRef<MongoDBConfigFormRef, MongoDBConfigFormProp
 
     // Validate form and notify parent
     useEffect(() => {
-      const isValid =
-        formData.uri.trim() !== '' &&
-        formData.database.trim() !== '' &&
-        !errors.uri &&
-        !errors.database;
+      const isValid = formData.uri.trim() !== '' && !errors.uri;
 
       // Only notify about validation if in edit mode or if the form has changed
-      const hasChanges =
-        formData.uri !== originalData.uri || formData.database !== originalData.database;
+      const hasChanges = formData.uri !== originalData.uri;
 
       onValidationChange(isValid && isEditing && hasChanges);
     }, [formData, errors, onValidationChange, isEditing, originalData]);
@@ -123,12 +113,6 @@ const MongoDBConfigForm = forwardRef<MongoDBConfigFormRef, MongoDBConfigFormProp
         } else if (!value.startsWith('mongodb://') && !value.startsWith('mongodb+srv://')) {
           error = 'URI must start with mongodb:// or mongodb+srv://';
         }
-      } else if (name === 'database') {
-        if (value.trim() === '') {
-          error = 'Database name is required';
-        } else if (/[/\\. "$*<>:|?]/.test(value)) {
-          error = 'Database name contains invalid characters';
-        }
       }
 
       setErrors({
@@ -144,7 +128,6 @@ const MongoDBConfigForm = forwardRef<MongoDBConfigFormRef, MongoDBConfigFormProp
         setFormData(originalData);
         setErrors({
           uri: '',
-          database: '',
         });
       }
       setIsEditing(!isEditing);
@@ -158,14 +141,12 @@ const MongoDBConfigForm = forwardRef<MongoDBConfigFormRef, MongoDBConfigFormProp
       try {
         const response = await updateMongoDBConfig({
           uri: formData.uri,
-          db: formData.database,
         });
         const warningHeader = response.data?.warningMessage;
 
         // Update original data after successful save
         setOriginalData({
           uri: formData.uri,
-          database: formData.database,
         });
 
         // Exit edit mode
@@ -261,35 +242,6 @@ const MongoDBConfigForm = forwardRef<MongoDBConfigFormRef, MongoDBConfigFormProp
                 startAdornment: (
                   <InputAdornment position="start">
                     <Iconify icon="mdi:database-outline" width={18} height={18} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: alpha(theme.palette.text.primary, 0.15),
-                  },
-                },
-              }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Database Name"
-              name="database"
-              value={formData.database}
-              onChange={handleChange}
-              placeholder="mydatabase"
-              error={Boolean(errors.database)}
-              helperText={errors.database || 'The name of the MongoDB database to connect to'}
-              required
-              size="small"
-              disabled={!isEditing}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Iconify icon="mdi:database" width={18} height={18} />
                   </InputAdornment>
                 ),
               }}

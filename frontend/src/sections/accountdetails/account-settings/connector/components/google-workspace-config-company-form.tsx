@@ -365,10 +365,10 @@ export const GoogleWorkspaceConfigForm = forwardRef<
             />
             <Box>
               <Typography variant="body2" color="text.secondary">
-                To configure Google Workspace integration, you need to upload your OAuth 2.0
+                To configure Google Workspace integration, you need to upload your Services
                 credentials JSON file from the{' '}
                 <Link
-                  href="https://console.cloud.google.com/apis/credentials"
+                  href="https://console.cloud.google.com/iam-admin/serviceaccounts/"
                   target="_blank"
                   rel="noopener"
                   sx={{ fontWeight: 500 }}

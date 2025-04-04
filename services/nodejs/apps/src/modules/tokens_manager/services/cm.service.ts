@@ -1,4 +1,5 @@
 import { EncryptionService } from '../../../libs/encryptor/encryptor';
+import { ARANGO_DB_NAME, MONGO_DB_NAME } from '../../../libs/enums/db.enum';
 import { KeyValueStoreService } from '../../../libs/services/keyValueStore.service';
 import { loadConfigurationManagerConfig } from '../../configuration_manager/config/config';
 import { configPaths } from '../../configuration_manager/paths/paths';
@@ -173,7 +174,7 @@ export class ConfigService {
   public async getMongoConfig(): Promise<MongoConfig> {
     return this.getEncryptedConfig<MongoConfig>(configPaths.db.mongodb, {
       uri: process.env.MONGO_URI!,
-      db: process.env.MONGO_DB_NAME!,
+      db: MONGO_DB_NAME,
     });
   }
 
@@ -191,7 +192,7 @@ export class ConfigService {
   public async getArangoConfig(): Promise<ArangoConfig> {
     return this.getEncryptedConfig<ArangoConfig>(configPaths.db.arangodb, {
       url: process.env.ARANGO_URL!,
-      db: process.env.ARANGO_DB_NAME!,
+      db: ARANGO_DB_NAME,
       username: process.env.ARANGO_USERNAME!,
       password: process.env.ARANGO_PASSWORD!,
     });
@@ -338,6 +339,9 @@ export class ConfigService {
     parsedUrl.connectors = {
       ...parsedUrl.connectors,
       endpoint: parsedUrl.connectors?.endpoint || process.env.CONNECTOR_BACKEND,
+      publicEndpoint:
+        parsedUrl.connectors?.publicEndpoint ||
+        process.env.CONNECTOR_PUBLIC_BACKEND,
     };
 
     // Save the updated object back to configPaths.endpoint
@@ -517,7 +521,21 @@ export class ConfigService {
     return process.env.COOKIE_SECRET_KEY!;
   }
 
-  public getRsAvailable(): string {
-    return process.env.REPLICA_SET_AVAILABLE!;
+  public async getRsAvailable(): Promise<string> {
+    if (!process.env.REPLICA_SET_AVAILABLE) {
+      const mongoUri = (
+        await this.getEncryptedConfig<MongoConfig>(configPaths.db.mongodb, {
+          uri: process.env.MONGO_URI!,
+          db: MONGO_DB_NAME,
+        })
+      ).uri;
+      if (mongoUri.includes('localhost')) {
+        return 'false';
+      } else {
+        return 'true';
+      }
+    } else {
+      return process.env.REPLICA_SET_AVAILABLE!;
+    }
   }
 }

@@ -512,10 +512,10 @@ const GoogleWorkspaceBusinessPage = () => {
               configured, you can enable or disable the connector as needed.
             </Typography>
             <Typography variant="body2" color="primary.main" sx={{ mt: 1, fontWeight: 500 }}>
-              Important: To configure Google Workspace integration, you need to upload your OAuth
-              2.0 credentials JSON file from the{' '}
+              Important: To configure Google Workspace integration, you need to upload your Service
+              credentials JSON file from the{' '}
               <Link
-                href="https://console.cloud.google.com/apis/credentials"
+                href="https://console.cloud.google.com/iam-admin/serviceaccounts/ "
                 target="_blank"
                 rel="noopener"
                 sx={{ fontWeight: 500 }}

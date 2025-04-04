@@ -115,7 +115,6 @@ export const microsoftConfigSchema = z.object({
 export const mongoDBConfigSchema = z.object({
   body: z.object({
     uri: z.string().url(),
-    db: z.string().min(1, { message: 'MongoDB database name is required' }),
   }),
 });
 
@@ -124,7 +123,6 @@ export const arangoDBConfigSchema = z.object({
     url: z.string().url(),
     username: z.string().optional(),
     password: z.string().optional(),
-    db: z.string().min(1, { message: 'ArangoDB database name is required' }),
   }),
 });
 
