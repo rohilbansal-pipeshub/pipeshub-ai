@@ -350,7 +350,11 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
                 error={!!fieldState.error}
                 helperText={
                   fieldState.error?.message ||
-                  (modelType === 'openai' ? 'e.g., gpt-4-turbo' : 'e.g., gpt-4o')
+                  (modelType === 'openai'
+                    ? 'e.g., gpt-4-turbo'
+                    : modelType === 'gemini'
+                      ? 'e.g., gemini-2.0-flash'
+                      : 'e.g., gpt-4o')
                 }
                 required
                 onBlur={() => {

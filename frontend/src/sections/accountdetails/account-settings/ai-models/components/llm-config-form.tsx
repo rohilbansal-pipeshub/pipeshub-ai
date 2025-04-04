@@ -794,7 +794,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                       size="small"
                       error={!!fieldState.error}
                       helperText={
-                        fieldState.error?.message || 'e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo'
+                        fieldState.error?.message || 'e.g., gemini-2.0-flash'
                       }
                       required
                       disabled={!isEditing || fetchError}
