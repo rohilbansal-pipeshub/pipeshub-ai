@@ -187,7 +187,7 @@ const ConnectorConfigStep: React.FC<ConnectorConfigStepProps> = ({
     if (accountType === 'business') {
       // For business accounts, check admin email and file
       const values = getValues().googleWorkspace;
-      const {adminEmail} = values;
+      const { adminEmail } = values;
       return (adminEmail && adminEmail.trim() !== '') || serviceCredentialsFile !== null;
     }
     // For individual accounts, check client ID and secret
@@ -325,7 +325,7 @@ const ConnectorConfigStep: React.FC<ConnectorConfigStepProps> = ({
 
       // For business accounts
       if (accountType === 'business') {
-        const {adminEmail} = businessForm.getValues().googleWorkspace;
+        const { adminEmail } = businessForm.getValues().googleWorkspace;
 
         // Check for admin email
         if (!adminEmail || adminEmail.trim() === '') {
@@ -882,6 +882,50 @@ const ConnectorConfigStep: React.FC<ConnectorConfigStepProps> = ({
                         <InputAdornment position="start">
                           <Iconify
                             icon="ri:user-settings-line"
+                            width={20}
+                            height={20}
+                            sx={{ color: theme.palette.primary.main, opacity: 0.8 }}
+                          />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        bgcolor: alpha(theme.palette.background.paper, 0.6),
+                        transition: theme.transitions.create(['box-shadow', 'background-color']),
+                        '&:hover': {
+                          bgcolor: theme.palette.background.paper,
+                        },
+                        '&.Mui-focused': {
+                          boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+                        },
+                      },
+                    }}
+                  />
+                )}
+              />
+              <Controller
+                name="googleWorkspace.clientSecret"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    label="Client Secret"
+                    placeholder="e.g., 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"
+                    fullWidth
+                    size="small"
+                    type="password"
+                    error={!!fieldState.error}
+                    helperText={
+                      validationAttempted && fieldState.error
+                        ? fieldState.error.message
+                        : 'Required - Client secret from Google Developer Console'
+                    }                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Iconify
+                            icon="ri:key-2-line"
                             width={20}
                             height={20}
                             sx={{ color: theme.palette.primary.main, opacity: 0.8 }}
