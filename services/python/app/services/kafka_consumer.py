@@ -6,8 +6,10 @@ import aiohttp
 import asyncio
 import os
 from datetime import datetime, timedelta, timezone
+from app.exceptions.indexing_exceptions import IndexingError
 from jose import jwt
 from app.config.configuration_service import ConfigurationService, config_node_constants, KafkaConfig
+from app.config.arangodb_constants import CollectionNames
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -142,12 +144,8 @@ class KafkaConsumerManager:
             self.semaphore.release()
 
     async def _process_message(self, message):
-        # Extract message identifiers once
-        topic = message.topic()
-        partition = message.partition()
+        topic_partition = f"{message.topic()}-{message.partition()}"
         offset = message.offset()
-        # Create a standardized message ID format
-        topic_partition = f"{topic}-{partition}"
         message_id = f"{topic_partition}-{offset}"
         
         # Check for DUPLICATE processing first
@@ -173,7 +171,7 @@ class KafkaConsumerManager:
 
             event_type = data.get('eventType')
             if not event_type:
-                logger.error(f"Missing event_type for topic: {topic}")
+                logger.error(f"Missing event_type for topic: {message.topic()}")
                 return False
 
             logger.info(f"Processing file record with event type: {event_type}")
@@ -204,12 +202,36 @@ class KafkaConsumerManager:
                         response_data = response.get('data')
                         payload_data['buffer'] = response_data
 
-                    await self.event_processor.on_event(data)
-                    logger.info(f"✅ Successfully processed document for event: {event_type}")
-                    
-                    # Mark as processed after successful processing
-                    self.mark_message_processed(topic_partition, offset)
-                    return True
+                    try:
+                        await self.event_processor.on_event(data)
+                        logger.info(f"✅ Successfully processed document for event: {event_type}")
+                        self.mark_message_processed(topic_partition, offset)
+                        return True
+                    except IndexingError as e:
+                        # Handle indexing-specific errors
+                        logger.error(f"❌ Indexing error: {str(e)}")
+                        record_id = payload_data.get('recordId')
+                        if record_id:
+                            await self._update_document_status(
+                                record_id=record_id,
+                                indexing_status="FAILED",
+                                extraction_status="FAILED",
+                                error_details=str(e)
+                            )
+                        return False
+                        
+                    except Exception as e:
+                        # Handle unexpected errors
+                        logger.error(f"❌ Unexpected error: {str(e)}")
+                        record_id = payload_data.get('recordId')
+                        if record_id:
+                            await self._update_document_status(
+                                record_id=record_id,
+                                indexing_status="FAILED",
+                                extraction_status="FAILED",
+                                error_details=f"Unexpected error: {str(e)}"
+                            )
+                        return False
                     
                 except Exception as e:
                     logger.error(f"Error getting signed URL: {str(e)}")
@@ -311,6 +333,43 @@ class KafkaConsumerManager:
         """Stop the consumer."""
         self.running = False
 
+    async def _update_document_status(
+        self,
+        record_id: str,
+        indexing_status: str,
+        extraction_status: str,
+        error_details: str = None
+    ):
+        """Update document status in Arango"""
+        try:
+            record = await self.event_processor.arango_service.get_document(
+                record_id, 
+                CollectionNames.RECORDS.value
+            )
+            if not record:
+                logger.error(f"❌ Record {record_id} not found for status update")
+                return
+
+            doc = dict(record)
+            if doc.get("extractionStatus") == "COMPLETED":
+                extraction_status = "COMPLETED"
+            doc.update({
+                "indexingStatus": indexing_status,
+                "extractionStatus": extraction_status
+            })
+
+            if error_details:
+                doc["processingError"] = error_details
+
+            docs = [doc]
+            await self.event_processor.arango_service.batch_upsert_nodes(
+                docs, 
+                CollectionNames.RECORDS.value
+            )
+            logger.info(f"✅ Updated document status for record {record_id}")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to update document status: {str(e)}")
 
 class RateLimiter:
     """Simple rate limiter to control how many tasks start per second"""

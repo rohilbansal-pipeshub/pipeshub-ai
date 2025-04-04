@@ -280,7 +280,8 @@ class DomainExtractor:
             doc = dict(record)
             doc.update({
                 "_key": document_id,
-                "extractionStatus": "COMPLETED"
+                "extractionStatus": "COMPLETED",
+                "lastExtractionTimestamp": int(datetime.now(timezone.utc).timestamp())
             })
             docs = [doc]
 

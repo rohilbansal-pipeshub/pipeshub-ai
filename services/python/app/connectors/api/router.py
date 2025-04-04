@@ -599,7 +599,7 @@ async def download_file(
                 
                 # Get the related message's externalRecordId using AQL
                 aql_query = f"""
-                FOR v, e IN 1..1 OUTBOUND '{CollectionNames.RECORDS.value}/{record_id}' {CollectionNames.RECORD_RELATIONS.value}
+                FOR v, e IN 1..1 ANY '{CollectionNames.RECORDS.value}/{record_id}' {CollectionNames.RECORD_RELATIONS.value}
                     FILTER e.relationType == '{RecordRelations.ATTACHMENT.value}'
                     RETURN {{
                         messageId: v.externalRecordId,
@@ -611,22 +611,6 @@ async def download_file(
                 cursor = arango_service.db.aql.execute(aql_query)
                 messages = list(cursor)
                 logger.info(f"🚀 Query results: {messages}")
-
-                if not messages or not messages[0]:
-                    # If no results found, try the reverse direction
-                    logger.info("No results found with OUTBOUND, trying INBOUND...")
-                    aql_query = f"""
-                    FOR v, e IN 1..1 INBOUND '{CollectionNames.RECORDS.value}/{record_id}' {CollectionNames.RECORD_RELATIONS.value}
-                        FILTER e.relationType == '{RecordRelations.ATTACHMENT.value}'
-                        RETURN {{
-                            messageId: v.externalRecordId,
-                            _key: v._key,
-                            relationType: e.relationType
-                        }}
-                    """
-                    cursor = arango_service.db.aql.execute(aql_query)
-                    messages = list(cursor)
-                    logger.info(f"🚀 Query results: {messages}")
 
                 if not messages or not messages[0]:
                     record_details = await arango_service.get_document(record_id, CollectionNames.RECORDS.value)
@@ -896,10 +880,11 @@ async def stream_record(
                 
                 # Handle attachment download (existing logic)
                 logger.info(f"Downloading Gmail attachment for record_id: {record_id}")
+                gmail_service = build('gmail', 'v1', credentials=creds)
                 
                 # Get the related message's externalRecordId using AQL
                 aql_query = f"""
-                FOR v, e IN 1..1 OUTBOUND '{CollectionNames.RECORDS.value}/{record_id}' {CollectionNames.RECORD_RELATIONS.value}
+                FOR v, e IN 1..1 ANY '{CollectionNames.RECORDS.value}/{record_id}' {CollectionNames.RECORD_RELATIONS.value}
                     FILTER e.relationType == '{RecordRelations.ATTACHMENT.value}'
                     RETURN {{
                         messageId: v.externalRecordId,
@@ -911,22 +896,6 @@ async def stream_record(
                 cursor = arango_service.db.aql.execute(aql_query)
                 messages = list(cursor)
                 logger.info(f"🚀 Query results: {messages}")
-
-                if not messages or not messages[0]:
-                    # If no results found, try the reverse direction
-                    logger.info("No results found with OUTBOUND, trying INBOUND...")
-                    aql_query = f"""
-                    FOR v, e IN 1..1 INBOUND '{CollectionNames.RECORDS.value}/{record_id}' {CollectionNames.RECORD_RELATIONS.value}
-                        FILTER e.relationType == '{RecordRelations.ATTACHMENT.value}'
-                        RETURN {{
-                            messageId: v.externalRecordId,
-                            _key: v._key,
-                            relationType: e.relationType
-                        }}
-                    """
-                    cursor = arango_service.db.aql.execute(aql_query)
-                    messages = list(cursor)
-                    logger.info(f"🚀 Query results: {messages}")
 
                 if not messages or not messages[0]:
                     record_details = await arango_service.get_document(record_id, CollectionNames.RECORDS.value)

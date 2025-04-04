@@ -53,7 +53,7 @@ class EventProcessor:
 
             # Update with new metadata fields
             doc.update({
-                "indexingStatus": "IN_PROGRESS"
+                "indexingStatus": "IN_PROGRESS",
             })
 
             docs = [doc]
@@ -192,6 +192,7 @@ class EventProcessor:
                 doc = docs[0]
                 doc.update({
                     "indexingStatus": "FILE_TYPE_NOT_SUPPORTED"
+                    
                 })
                 docs = [doc]
                 await self.arango_service.batch_upsert_nodes(docs, CollectionNames.RECORDS.value)
@@ -204,6 +205,7 @@ class EventProcessor:
             return result
 
         except Exception as e:
-            logger.error(f"❌ Error processing event: {str(e)}")
+            # Let the error bubble up to Kafka consumer
+            logger.error(f"❌ Error in event processor: {str(e)}")
             raise
 

@@ -717,9 +717,8 @@ class DriveSyncEnterpriseService(BaseDriveSyncService):
 
             # Phase 1: Set up changes.watch for each user
             logger.info("👀 Setting up changes watch for all users...")
-            logger.debug("🚀 Users: %s", users)
             
-            for user in users:
+            for user in active_users:
                 try:
                     user_service = await self.drive_admin_service.create_user_service(user['email'])
                     if not user_service:
@@ -775,7 +774,52 @@ class DriveSyncEnterpriseService(BaseDriveSyncService):
                 current_state = sync_state.get('syncState')
                 if current_state == 'COMPLETED':
                     logger.warning("💥 Drive sync is already completed for user %s", user['email'])
-                    continue
+                    
+                    try:
+                        page_token = await self.arango_service.get_page_token_db(
+                            user_email=user['email']
+                        )
+
+                        if not page_token:
+                            logger.error(
+                                "No page token found for user %s", user['email'])
+                            continue
+                        
+                        user_service = await self.drive_admin_service.create_user_service(page_token['user_email'])
+
+                        changes, new_token = await user_service.get_changes(
+                            page_token=page_token['token']
+                        )
+                        
+                        user_id = user['userId']
+
+                        if changes:
+                            logger.info("Processing %s changes for user %s",
+                                        len(changes), user['email'])
+                            for change in changes:
+                                try:
+                                    await self.change_handler.process_change(change, user_service, org_id, user_id)
+                                except Exception as e:
+                                    logger.error("Error processing change: %s", str(e))
+                                    continue
+
+                            if new_token and new_token != page_token['token']:
+                                await self.arango_service.store_page_token(
+                                    user_email=user['email'],
+                                    token=new_token
+                                )
+                                logger.info(
+                                    "✅ Updated token for user %s", user['email'])
+
+                        else:
+                            logger.info(
+                                "ℹ️ No changes found for user %s", user['email'])
+                        continue
+                    
+                    except Exception as e:
+                        logger.error(f"Error processing user {user['email']}: {str(e)}")
+                        continue
+
                 # Update user sync state to RUNNING
                 await self.arango_service.update_user_sync_state(
                     user['email'],
@@ -1252,7 +1296,42 @@ class DriveSyncIndividualService(BaseDriveSyncService):
             current_state = sync_state.get('syncState')
             if current_state == 'COMPLETED':
                 logger.warning("💥 Drive sync is already completed for user %s", user['email'])
-                return False
+                
+                try:
+                    
+                    user_service = self.drive_user_service
+
+                    page_token = await self.arango_service.get_page_token_db(
+                        user_email=user['email']
+                    )
+
+                    if not page_token:
+                        return
+
+                    changes, new_token = await user_service.get_changes(
+                        page_token=page_token['token']
+                    )
+                    user_id = user['userId']
+
+                    if changes:
+                        for change in changes:
+                            try:
+                                await self.change_handler.process_change(change, user_service, org_id, user_id)
+                            except Exception as e:
+                                logger.error(f"Error processing change: {str(e)}")
+                                continue
+
+                    if new_token and new_token != page_token['token']:
+                        await self.arango_service.store_page_token(
+                            user_email=user['email'],
+                            token=new_token
+                        )
+                        logger.info(f"🚀 Updated token for user {user['email']}")
+                    return True
+                
+                except Exception as e:
+                    logger.error(f"Error getting changes for user {user['email']}: {str(e)}")
+                    return False
 
             # Update user sync state to RUNNING
             await self.arango_service.update_user_sync_state(
