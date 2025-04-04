@@ -8,7 +8,8 @@ import type {
 
 import { Icon } from '@iconify/react';
 import React, { useRef, useMemo, useState } from 'react';
-
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   Box,
   Chip,
@@ -129,7 +130,7 @@ const MessageContent: React.FC<MessageContentProps> = ({
   }, [citations]);
 
   // Split content by newlines first
-  const lines = content.split('\n');
+  const lines = useMemo(() => content.split('\n'), [content]);
 
   const handleMouseEnter = (citationRef: string, citationId: string) => {
     if (hoverTimeoutRef.current) {
@@ -152,12 +153,203 @@ const MessageContent: React.FC<MessageContentProps> = ({
     hoverTimeoutRef.current = setTimeout(() => {
       setHoveredCitationId(null);
       setHoveredRecordCitations([]);
-    }, 100);
+    }, 300); // Increased from 100ms to 300ms for smoother hover
+  };
+
+  const handleHoverCardMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
   };
 
   const handleCloseHoverCard = () => {
     setHoveredCitationId(null);
     setHoveredRecordCitations([]);
+  };
+
+  // Render line with markdown and citations
+  const renderLineWithMarkdown = (line: string, lineIndex: number) => {
+    // Split the line by citation pattern
+    const parts = line.split(/(\[\d+\])/);
+
+    return (
+      <Box
+        key={lineIndex}
+        sx={{
+          mb: lineIndex < lines.length - 1 ? 2 : 0,
+          opacity: 1,
+          animation: lineIndex > 0 ? 'fadeIn 0.3s ease-in-out' : 'none',
+          '@keyframes fadeIn': {
+            from: { opacity: 0.7 },
+            to: { opacity: 1 },
+          },
+        }}
+      >
+        {parts.map((part, partIndex) => {
+          // Check if this part is a citation
+          const citationMatch = part.match(/\[(\d+)\]/);
+          if (citationMatch) {
+            const citationNumber = parseInt(citationMatch[1], 10);
+            const citation = citationNumberMap[citationNumber];
+            const citationId = `${lineIndex}-${partIndex}`;
+
+            return (
+              <Tooltip
+                key={citationId}
+                title="View source details"
+                placement="top"
+                arrow
+                enterDelay={500}
+                componentsProps={{
+                  tooltip: {
+                    sx: {
+                      bgcolor: 'background.paper',
+                      color: 'text.primary',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                      borderRadius: '8px',
+                      p: 1,
+                      fontSize: '0.7rem',
+                      fontWeight: 500,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                    },
+                  },
+                  arrow: {
+                    sx: {
+                      color: 'background.paper',
+                    },
+                  },
+                }}
+              >
+                <Box
+                  component="span"
+                  onMouseEnter={() => handleMouseEnter(part, citationId)}
+                  onMouseLeave={handleMouseLeave}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    ml: 0.5,
+                    mr: 0.25,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    '&:hover': {
+                      '& .citation-number': {
+                        transform: 'scale(1.15) translateY(-1px)',
+                        bgcolor: 'primary.main',
+                        color: 'white',
+                        boxShadow: '0 3px 8px rgba(25, 118, 210, 0.3)',
+                      },
+                    },
+                    // Add invisible hit area for smoother hover
+                    '&::after': {
+                      content: '""',
+                      position: 'absolute',
+                      top: -8,
+                      right: -8,
+                      bottom: -8,
+                      left: -8,
+                      zIndex: -1,
+                    },
+                  }}
+                >
+                  <Box
+                    component="span"
+                    className="citation-number"
+                    sx={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      bgcolor: 'rgba(25, 118, 210, 0.08)',
+                      color: 'primary.main',
+                      fontSize: '0.65rem',
+                      fontWeight: 600,
+                      transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      textDecoration: 'none',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                      border: '1px solid',
+                      borderColor: 'rgba(25, 118, 210, 0.12)',
+                    }}
+                  >
+                    {citationNumber}
+                  </Box>
+                  {hoveredCitationId === citationId && citation && (
+                    <Fade in timeout={150}>
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: 0,
+                          bottom: '100%',
+                          zIndex: 1400,
+                          mb: 1,
+                          maxWidth: '350px',
+                          width: 'max-content',
+                          opacity: 1,
+                        }}
+                        onMouseEnter={handleHoverCardMouseEnter}
+                        onMouseLeave={handleMouseLeave}
+                      >
+                        <CitationHoverCard
+                          citation={citation}
+                          isVisible={Boolean(true)}
+                          onRecordClick={onRecordClick}
+                          onClose={handleCloseHoverCard}
+                          aggregatedCitations={hoveredRecordCitations}
+                          onViewPdf={onViewPdf}
+                        />
+                      </Box>
+                    </Fade>
+                  )}
+                </Box>
+              </Tooltip>
+            );
+          }
+
+          // For regular text parts, render with markdown
+          return (
+            <Box
+              component="span"
+              key={`${lineIndex}-${partIndex}`}
+              sx={{
+                display: 'inline',
+                '& img': {
+                  maxWidth: '100%',
+                  height: 'auto',
+                  borderRadius: '8px',
+                  my: 2,
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                },
+                '& ul, & ol': {
+                  pl: 2.5,
+                  mb: 2,
+                  mt: 1,
+                },
+                '& li': {
+                  mb: 0.75,
+                },
+                // To prevent ReactMarkdown from creating unwanted paragraph elements
+                '& > div > p': {
+                  display: 'inline',
+                  margin: 0,
+                },
+              }}
+            >
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  // Override paragraph to render as inline span for text segments
+                  p: ({ node, ...props }) => <span {...props} />,
+                }}
+              >
+                {part}
+              </ReactMarkdown>
+            </Box>
+          );
+        })}
+      </Box>
+    );
   };
 
   return (
@@ -178,6 +370,19 @@ const MessageContent: React.FC<MessageContentProps> = ({
             fontFamily: 'monospace',
             fontSize: '0.9em',
           },
+          '& pre': {
+            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            padding: 1.5,
+            borderRadius: '4px',
+            fontFamily: 'monospace',
+            fontSize: '0.85em',
+            overflow: 'auto',
+            my: 1.5,
+            '& code': {
+              backgroundColor: 'transparent',
+              padding: 0,
+            },
+          },
           '& strong': {
             fontWeight: 600,
             color: 'text.primary',
@@ -193,160 +398,64 @@ const MessageContent: React.FC<MessageContentProps> = ({
               borderColor: 'primary.main',
             },
           },
+          '& h1': {
+            fontSize: '1.4rem',
+            fontWeight: 600,
+            marginTop: 2,
+            marginBottom: 1.5,
+          },
+          '& h2': {
+            fontSize: '1.2rem',
+            fontWeight: 600,
+            marginTop: 2,
+            marginBottom: 1.5,
+          },
+          '& h3': {
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            marginTop: 2,
+            marginBottom: 1,
+          },
+          '& h4, & h5, & h6': {
+            fontSize: '1rem',
+            fontWeight: 600,
+            marginTop: 1.5,
+            marginBottom: 1,
+          },
+          '& ul, & ol': {
+            paddingLeft: 2.5,
+            marginBottom: 1.5,
+            marginTop: 0.5,
+          },
+          '& li': {
+            marginBottom: 0.75,
+          },
+          '& blockquote': {
+            borderLeft: '4px solid',
+            borderColor: 'divider',
+            paddingLeft: 2,
+            margin: '1em 0',
+            color: 'text.secondary',
+            fontStyle: 'italic',
+          },
+          '& table': {
+            borderCollapse: 'collapse',
+            width: '100%',
+            marginBottom: 2,
+          },
+          '& th, & td': {
+            border: '1px solid',
+            borderColor: 'divider',
+            padding: '8px 12px',
+            textAlign: 'left',
+          },
+          '& th': {
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+            fontWeight: 600,
+          },
         }}
       >
-        {lines.map((line, lineIndex) => {
-          const parts = line.split(/(\[\d+\])/);
-          return (
-            <Box
-              key={lineIndex}
-              sx={{
-                mb: lineIndex < lines.length - 1 ? 2 : 0,
-                opacity: 1,
-                animation: lineIndex > 0 ? 'fadeIn 0.3s ease-in-out' : 'none',
-                '@keyframes fadeIn': {
-                  from: { opacity: 0.7 },
-                  to: { opacity: 1 },
-                },
-              }}
-            >
-              {parts.map((part, partIndex) => {
-                const citationMatch = part.match(/\[(\d+)\]/);
-                if (citationMatch) {
-                  const citationNumber = parseInt(citationMatch[1], 10);
-                  const citation = citationNumberMap[citationNumber];
-                  const citationId = `${lineIndex}-${partIndex}`;
-
-                  return (
-                    <Tooltip
-                      key={citationId}
-                      title="View source details"
-                      placement="top"
-                      arrow
-                      enterDelay={500}
-                      componentsProps={{
-                        tooltip: {
-                          sx: {
-                            bgcolor: 'background.paper',
-                            color: 'text.primary',
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                            borderRadius: '8px',
-                            p: 1,
-                            fontSize: '0.7rem',
-                            fontWeight: 500,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                          },
-                        },
-                        arrow: {
-                          sx: {
-                            color: 'background.paper',
-                          },
-                        },
-                      }}
-                    >
-                      <Box
-                        component="span"
-                        onMouseEnter={() => handleMouseEnter(part, citationId)}
-                        onMouseLeave={handleMouseLeave}
-                        sx={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          ml: 0.5,
-                          mr: 0.25,
-                          cursor: 'pointer',
-                          position: 'relative',
-                          '&:hover': {
-                            '& .citation-number': {
-                              transform: 'scale(1.15) translateY(-1px)',
-                              bgcolor: 'primary.main',
-                              color: 'white',
-                              boxShadow: '0 3px 8px rgba(25, 118, 210, 0.3)',
-                            },
-                          },
-                        }}
-                      >
-                        <Box
-                          component="span"
-                          className="citation-number"
-                          sx={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            bgcolor: 'rgba(25, 118, 210, 0.08)',
-                            color: 'primary.main',
-                            fontSize: '0.65rem',
-                            fontWeight: 600,
-                            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                            textDecoration: 'none',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                            border: '1px solid',
-                            borderColor: 'rgba(25, 118, 210, 0.12)',
-                          }}
-                        >
-                          {citationNumber}
-                        </Box>
-                        {hoveredCitationId === citationId && citation && (
-                          <Fade in timeout={150}>
-                            <Box
-                              sx={{
-                                position: 'absolute',
-                                left: 0,
-                                bottom: '100%',
-                                zIndex: 1400,
-                                mb: 1,
-                                maxWidth: '350px',
-                                width: 'max-content',
-                                opacity: 1,
-                              }}
-                            >
-                              <CitationHoverCard
-                                citation={citation}
-                                isVisible={Boolean(true)}
-                                onRecordClick={onRecordClick}
-                                onClose={handleCloseHoverCard}
-                                aggregatedCitations={hoveredRecordCitations}
-                                onViewPdf={onViewPdf}
-                              />
-                            </Box>
-                          </Fade>
-                        )}
-                      </Box>
-                    </Tooltip>
-                  );
-                }
-                return (
-                  <Box
-                    component="span"
-                    key={`${lineIndex}-${partIndex}`}
-                    sx={{
-                      '& img': {
-                        maxWidth: '100%',
-                        height: 'auto',
-                        borderRadius: '8px',
-                        my: 2,
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-                      },
-                      '& ul, & ol': {
-                        pl: 2.5,
-                        mb: 2,
-                        mt: 1,
-                      },
-                      '& li': {
-                        mb: 0.75,
-                      },
-                    }}
-                  >
-                    {part}
-                  </Box>
-                );
-              })}
-            </Box>
-          );
-        })}
+        {lines.map((line, lineIndex) => renderLineWithMarkdown(line, lineIndex))}
       </Typography>
     </Box>
   );
@@ -501,17 +610,89 @@ const ChatMessage = ({
               onViewPdf={handleViewPdf}
             />
           ) : (
-            <Typography
+            <Box
               sx={{
                 fontSize: '0.9rem',
                 lineHeight: 1.6,
                 letterSpacing: '0.005em',
                 wordBreak: 'break-word',
-                fontWeight: 500,
+                '& p': { mt: 0, mb: 1.5 },
+                '& h1': { fontSize: '1.4rem', fontWeight: 600, my: 1.5 },
+                '& h2': { fontSize: '1.2rem', fontWeight: 600, my: 1.5 },
+                '& h3': { fontSize: '1.1rem', fontWeight: 600, my: 1.5 },
+                '& h4': { fontSize: '1rem', fontWeight: 600, my: 1.5 },
+                '& h5, & h6': { fontSize: '0.9rem', fontWeight: 600, my: 1.5 },
+                '& ul, & ol': { pl: 2.5, mb: 1.5, mt: 0 },
+                '& li': { mb: 0.75 },
+                '& blockquote': {
+                  pl: 1.5,
+                  ml: 0,
+                  borderLeft: '4px solid',
+                  borderColor: 'divider',
+                  color: 'text.secondary',
+                  fontStyle: 'italic',
+                  my: 1.5,
+                },
+                '& code': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  padding: '0.2em 0.4em',
+                  borderRadius: '4px',
+                  fontFamily: 'monospace',
+                  fontSize: '0.85em',
+                },
+                '& pre': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                  padding: 2,
+                  borderRadius: '4px',
+                  overflow: 'auto',
+                  my: 1.5,
+                  '& code': {
+                    backgroundColor: 'transparent',
+                    padding: 0,
+                    borderRadius: 0,
+                    fontFamily: 'monospace',
+                    fontSize: '0.85em',
+                  },
+                },
+                '& a': {
+                  color: 'primary.main',
+                  textDecoration: 'none',
+                  borderBottom: '1px dotted',
+                  borderColor: 'primary.light',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    color: 'primary.dark',
+                    borderColor: 'primary.main',
+                  },
+                },
+                '& img': {
+                  maxWidth: '100%',
+                  borderRadius: 1,
+                },
+                '& table': {
+                  borderCollapse: 'collapse',
+                  width: '100%',
+                  mb: 1.5,
+                },
+                '& th, & td': {
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  padding: '8px 12px',
+                  textAlign: 'left',
+                },
+                '& th': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                  fontWeight: 600,
+                },
               }}
             >
-              {message.content}
-            </Typography>
+              <ReactMarkdown
+              // If you've added remark-gfm:
+              // remarkPlugins={[remarkGfm]}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </Box>
           )}
           {/* Citations Section */}
           {message.citations && message.citations?.length > 0 && (
