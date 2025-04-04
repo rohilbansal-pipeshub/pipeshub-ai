@@ -1,1 +1,1 @@
-export const etcdPath = '/upstream_service/metrics';
+export const etcdPath = 'EtcdPrometheusKeyValues/EtcdKeyValues';
