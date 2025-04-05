@@ -15,33 +15,27 @@
 <a href="https://docs.pipeshub.com/" target="_blank">
     <img src="https://img.shields.io/badge/docs-view-blue" alt="Documentation">
 </a>
+</p>
+
 <!--Intro-->
-[PipesHub](https://github.com/pipeshub-ai/pipeshub-ai) is the workplace AI platform for enterprises to improve how businesses operate and help employees and AI agents work more efficiently.
+<strong>[PipesHub](https://github.com/pipeshub-ai/pipeshub-ai)</strong> is the workplace AI platform for enterprises to improve how businesses operate and help employees and AI agents work more efficiently.
 In most companies, important work data is spread across multiple apps like Google Workspace, Microsoft 365, Slack, Jira, Confluence, and more. PipesHub AI helps you quickly find the right information using natural language search—just like Google.
 It can answer questions, provide insights, and more. The platform not only delivers the most relevant results but also shows where the information came from, with proper citations, using Knowledge Graphs and Page Ranking.
 Beyond search, our platform allows enterprises to create custom apps and AI agents using a No-Code interface.
-
-<Frame>
+<h2>High Level Architecture Diagram</h2>
   <img
     width="800"
     height="450"
     src="https://mintlify.s3.us-west-1.amazonaws.com/pipeshub/images/system-architecture/pipeshub-system-architecture.png"
     alt="PipesHub System Architecture"
   />
-</Frame>
+
 
 <h2>Spotlight Features</h2>
 
 #### Your Workplace, Our AI.
-<iframe
-  width="580"
-  height="315"
-  src="https://www.youtube.com/embed/czDNbS_OEDQ?si=qg11NYoug0yrChlr"
-  title="PipesHub Workplace AI"
-  frameborder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen;"
-  allowfullscreen
-></iframe>
+[![PipesHub Workplace AI](https://img.youtube.com/vi/czDNbS_OEDQ/0.jpg)](https://www.youtube.com/watch?v=czDNbS_OEDQ)
+
 
 ## Unmatched Value of PipesHub
 - **Choose Any Model, Your Way** – Bring your preferred deep learning models for both indexing and inference with total flexibility.
@@ -63,3 +57,6 @@ Beyond search, our platform allows enterprises to create custom apps and AI agen
 
 ## Deployment
 PipesHub Workplace AI platform can be run locally on your machine or deployed on cloud with `docker compose`.
+
+## Docs
+Link: https://docs.pipeshub.com/
