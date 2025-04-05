@@ -45,9 +45,9 @@ FROM python:3.10 AS final
 WORKDIR /app
 
 # Copy compiled binaries
-COPY --from=builder /build/dist/main ./
-COPY --from=builder /build/dist/app ./
-COPY --from=builder /build/default_config.json ./default_config.json
+COPY --from=builder /build/dist/indexing_main ./
+COPY --from=builder /build/dist/connectors_main ./
+COPY --from=builder /build/dist/query_main ./
 
 ENV DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC
 
@@ -57,10 +57,11 @@ RUN apt-get update && apt-get install -y \
     libbz2-dev liblz4-dev libzstd-dev libssl-dev ca-certificates libspatialindex-dev libpq5\
  && rm -rf /var/lib/apt/lists/*
  # Ensure executable permission
-RUN chmod +x /app/main
-RUN chmod +x /app/app
+RUN chmod +x /app/indexing_main
+RUN chmod +x /app/connectors_main
+RUN chmod +x /app/query_main
 
 # Expose necessary ports
-EXPOSE 8080 8091
+EXPOSE 8000 8080 8091
 
 CMD sh -c "/app/main & /app/app & wait"

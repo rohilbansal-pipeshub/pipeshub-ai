@@ -7,6 +7,7 @@ from app.utils.logger import logger
 from langchain_community.chat_models import AzureChatOpenAI, ChatOpenAI
 from app.config.ai_models_named_constants import AzureOpenAILLM
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_anthropic import ChatAnthropic
 
 
 class BaseLLMConfig(BaseModel):
@@ -22,6 +23,9 @@ class AzureLLMConfig(BaseLLMConfig):
     azure_api_version: str
 
 class GeminiLLMConfig(BaseLLMConfig):
+    """Gemini-specific configuration"""
+
+class AnthropicLLMConfig(BaseLLMConfig):
     """Gemini-specific configuration"""
 
 class OpenAILLMConfig(BaseLLMConfig):
@@ -80,7 +84,7 @@ class LLMFactory:
                 model=config.model,
                 azure_endpoint=config.azure_endpoint,
                 api_version=AzureOpenAILLM.AZURE_OPENAI_VERSION.value,
-                temperature=0.4,
+                temperature=0.3,
                 azure_deployment=config.azure_deployment,
                 callbacks=[cost_callback]
             )
@@ -88,7 +92,7 @@ class LLMFactory:
         elif isinstance(config, OpenAILLMConfig):
             return ChatOpenAI(
                 model=config.model,
-                temperature=0.4,
+                temperature=0.3,
                 api_key=config.api_key,
                 organization=config.organization_id,
                 callbacks=[cost_callback]
@@ -97,11 +101,21 @@ class LLMFactory:
         elif isinstance(config, GeminiLLMConfig):
             return ChatGoogleGenerativeAI(
                 model=config.model,
-                temperature=0,
+                temperature=0.3,
                 max_tokens=None,
                 timeout=None,
                 max_retries=2,
                 google_api_key=config.api_key,
+                callbacks=[cost_callback]
+            )
+        
+        elif isinstance(config, AnthropicLLMConfig):
+            return ChatAnthropic(
+                model=config.model,
+                temperature=0.3,
+                timeout=None,
+                max_retries=2,
+                api_key=config.api_key,
                 callbacks=[cost_callback]
             )
         

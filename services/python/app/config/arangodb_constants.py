@@ -22,6 +22,7 @@ class DepartmentNames(Enum):
     ESG = "Environmental, Social, and Governance"
     TRAINING = "Training and Enablement"
     MARKETING = "Marketing"
+    INVESTOR_RELATIONS = "Investor Relationss"
     CUSTOMER_SUCCESS = "Customer Success"
     OTHERS = "Others"
     
