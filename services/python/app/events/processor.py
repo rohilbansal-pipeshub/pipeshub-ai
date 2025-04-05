@@ -194,23 +194,41 @@ class Processor:
             logger.debug("📑 Creating semantic sentences")
             sentence_data = []
             
+            # Keep track of previous items for context
+            context_window = []
+            context_window_size = 3  # Number of previous items to include for context
+
             for idx, item in enumerate(ordered_content, 1):
-                logger.info("🚀 item: %s", item)
                 if item['text'].strip():
                     context = item['context']
+                    
+                    # Create context text from previous items
+                    previous_context = " ".join([prev['text'].strip() for prev in context_window])
+                    
+                    # Current item's context with previous items
+                    full_context = {
+                        "previous": previous_context,
+                        "current": item['text'].strip()
+                    }
+
                     sentence_data.append({
                         'text': item['text'].strip(),
                         'bounding_box': None,
                         'metadata': {
-                            **(domain_metadata),
-                            'recordId': recordId,
+                            **(domain_metadata or {}),
+                            "recordId": recordId,
                             "blockType": context.get('label', 'text'),
                             "blockNum": idx,
-                            "level": context.get('level'),
-                            "listInfo": context.get('list_info'),
-                            "elementType": context.get('element_type', 'text')
+                            "blockText": json.dumps(full_context),  # Include full context
+                            "slideNumber": context.get('slide_number'),
+                            "level": context.get('level')
                         }
                     })
+
+                    # Update context window
+                    context_window.append(item)
+                    if len(context_window) > context_window_size:
+                        context_window.pop(0)
 
             # Index sentences if available
             if sentence_data:
@@ -471,23 +489,41 @@ class Processor:
             logger.debug("📑 Creating semantic sentences")
             sentence_data = []
             
+            # Keep track of previous items for context
+            context_window = []
+            context_window_size = 3  # Number of previous items to include for context
+
             for idx, item in enumerate(ordered_content, 1):
                 if item['text'].strip():
                     context = item['context']
+                    
+                    # Create context text from previous items
+                    previous_context = " ".join([prev['text'].strip() for prev in context_window])
+                    
+                    # Current item's context with previous items
+                    full_context = {
+                        "previous": previous_context,
+                        "current": item['text'].strip()
+                    }
+
                     sentence_data.append({
                         'text': item['text'].strip(),
                         'bounding_box': None,
                         'metadata': {
-                            **(domain_metadata),
-                            'recordId': recordId,
+                            **(domain_metadata or {}),
+                            "recordId": recordId,
                             "blockType": context.get('label', 'text'),
-                            "blockText": item['text'].strip(),
                             "blockNum": idx,
-                            "level": context.get('level'),
-                            "listInfo": context.get('list_info'),
-                            "elementType": context.get('element_type', 'text')
+                            "blockText": json.dumps(full_context),  # Include full context
+                            "slideNumber": context.get('slide_number'),
+                            "level": context.get('level')
                         }
                     })
+
+                    # Update context window
+                    context_window.append(item)
+                    if len(context_window) > context_window_size:
+                        context_window.pop(0)
 
             # Index sentences if available
             if sentence_data:
@@ -909,22 +945,41 @@ class Processor:
             logger.debug("📑 Creating semantic sentences")
             sentence_data = []
             
+            # Keep track of previous items for context
+            context_window = []
+            context_window_size = 3  # Number of previous items to include for context
+
             for idx, item in enumerate(ordered_content, 1):
                 if item['text'].strip():
                     context = item['context']
+                    
+                    # Create context text from previous items
+                    previous_context = " ".join([prev['text'].strip() for prev in context_window])
+                    
+                    # Current item's context with previous items
+                    full_context = {
+                        "previous": previous_context,
+                        "current": item['text'].strip()
+                    }
+
                     sentence_data.append({
                         'text': item['text'].strip(),
                         'bounding_box': None,
                         'metadata': {
-                            **(domain_metadata),
-                            'recordId': recordId,
+                            **(domain_metadata or {}),
+                            "recordId": recordId,
                             "blockType": context.get('label', 'text'),
                             "blockNum": idx,
-                            "level": context.get('level'),
-                            "listInfo": context.get('list_info'),
-                            "elementType": context.get('element_type', 'text')
+                            "blockText": json.dumps(full_context),  # Include full context
+                            "slideNumber": context.get('slide_number'),
+                            "level": context.get('level')
                         }
                     })
+
+                    # Update context window
+                    context_window.append(item)
+                    if len(context_window) > context_window_size:
+                        context_window.pop(0)
 
             # Index sentences if available
             if sentence_data:
@@ -1196,12 +1251,13 @@ class Processor:
                     metadata = await self.domain_extractor.extract_metadata(text_content)
                     logger.info(f"✅ Extracted metadata: {metadata}")
                     record = await self.domain_extractor.save_metadata_to_arango(recordId, metadata)
-                    domain_metadata = record
-                    pptx_result["metadata"] = record  
+                    file = await self.arango_service.get_document(recordId, CollectionNames.FILES.value)
+                    domain_metadata = {**record, **file}
+                     
                 except Exception as e:
                     logger.error(f"❌ Error extracting metadata: {str(e)}")
                     domain_metadata = None
-                    pptx_result["metadata"] = None  
+                    
 
             # Create numbered items with slide information
             numbered_items = []
@@ -1229,9 +1285,23 @@ class Processor:
             logger.debug("📑 Creating semantic sentences")
             sentence_data = []
             
+            # Keep track of previous items for context
+            context_window = []
+            context_window_size = 3  # Number of previous items to include for context
+
             for idx, item in enumerate(ordered_items, 1):
                 if item['text'].strip():
                     context = item['context']
+                    
+                    # Create context text from previous items
+                    previous_context = " ".join([prev['text'].strip() for prev in context_window])
+                    
+                    # Current item's context with previous items
+                    full_context = {
+                        "previous": previous_context,
+                        "current": item['text'].strip()
+                    }
+
                     sentence_data.append({
                         'text': item['text'].strip(),
                         'bounding_box': None,
@@ -1240,13 +1310,21 @@ class Processor:
                             "recordId": recordId,
                             "blockType": context.get('label', 'text'),
                             "blockNum": idx,
+                            "blockText": json.dumps(full_context),  # Include full context
                             "slideNumber": context.get('slide_number'),
                             "level": context.get('level')
                         }
                     })
 
+                    # Update context window
+                    context_window.append(item)
+                    if len(context_window) > context_window_size:
+                        context_window.pop(0)
+
             # Index sentences if available
             if sentence_data:
+                logger.debug("📑 Indexing %s sentences", len(sentence_data))
+                logger.debug("sentence_data: %s", sentence_data)
                 pipeline = self.indexing_pipeline
                 await pipeline.index_documents(sentence_data)
 
