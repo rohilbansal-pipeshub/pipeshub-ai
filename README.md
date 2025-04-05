@@ -7,7 +7,7 @@
 </a>
 </h2>
 
-<p align="center">
+<p align="center"></p>
 <p align="center">Workplace AI Platform</p>
 
 <!--Links in Readme-->
