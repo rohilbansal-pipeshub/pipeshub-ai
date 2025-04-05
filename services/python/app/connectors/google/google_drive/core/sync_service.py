@@ -19,7 +19,7 @@ from app.connectors.core.kafka_service import KafkaService
 from app.config.configuration_service import ConfigurationService, config_node_constants
 from app.utils.time_conversion import get_epoch_timestamp_in_ms, parse_timestamp
 
-logger = create_logger("google_drive_sync_service")
+logger = create_logger(__name__)
 
 class DriveSyncProgress:
     """Class to track sync progress"""
@@ -311,6 +311,7 @@ class BaseDriveSyncService(ABC):
 
             # Get user ID for relationships
             user_id = await self.arango_service.get_entity_id_by_email(user['email'])
+            logger.info("user_id: %s", user_id)
             
             # Create user-drive relationship
             user_drive_relation = {
@@ -318,7 +319,7 @@ class BaseDriveSyncService(ABC):
                 '_to': f'drives/{drive_info["drive"]["_key"]}',
                 'access_level': drive_info['drive']['access_level']
             }
-            print("user_drive_relation: ", user_drive_relation)
+            logger.info("user_drive_relation: %s", user_drive_relation)
 
             await self.arango_service.batch_create_edges(
                 [user_drive_relation],
@@ -785,7 +786,7 @@ class DriveSyncEnterpriseService(BaseDriveSyncService):
                                 "No page token found for user %s", user['email'])
                             continue
                         
-                        user_service = await self.drive_admin_service.create_user_service(page_token['user_email'])
+                        user_service = await self.drive_admin_service.create_user_service(page_token['userEmail'])
 
                         changes, new_token = await user_service.get_changes(
                             page_token=page_token['token']
@@ -805,6 +806,8 @@ class DriveSyncEnterpriseService(BaseDriveSyncService):
 
                             if new_token and new_token != page_token['token']:
                                 await self.arango_service.store_page_token(
+                                    channel_id=page_token['channel_id'],
+                                    resource_id=page_token['resource_id'],
                                     user_email=user['email'],
                                     token=new_token
                                 )
@@ -996,7 +999,7 @@ class DriveSyncEnterpriseService(BaseDriveSyncService):
                 return False
             
             user_id = await self.arango_service.get_entity_id_by_email(user_email)
-            user = self.arango_service.get_document(user_id, CollectionNames.USERS.value)
+            user = await self.arango_service.get_document(user_id, CollectionNames.USERS.value)
             # Get org_id from belongsTo relation for this user
             query = f"""
             FOR edge IN belongsTo
@@ -1323,6 +1326,8 @@ class DriveSyncIndividualService(BaseDriveSyncService):
 
                     if new_token and new_token != page_token['token']:
                         await self.arango_service.store_page_token(
+                            channel_id=page_token['channel_id'],
+                            resource_id=page_token['resource_id'],
                             user_email=user['email'],
                             token=new_token
                         )

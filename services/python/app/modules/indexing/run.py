@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from app.exceptions.indexing_exceptions import *
 from datetime import datetime, timezone
 
-logger = create_logger('indexing')
+logger = create_logger(__name__)
 
 @dataclass
 class Document(LangchainDocument):

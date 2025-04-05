@@ -12,7 +12,7 @@ from typing import Dict, List
 from googleapiclient.discovery import build
 import google.oauth2.credentials
 from app.config.configuration_service import ConfigurationService
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.decorators import exponential_backoff, token_refresh
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.connectors.google.gmail.core.gmail_drive_interface import GmailDriveInterface
@@ -23,6 +23,8 @@ from app.exceptions.connector_google_exceptions import (
     MailSyncError, MailThreadError, BatchOperationError
 )
 from googleapiclient.errors import HttpError
+
+logger = create_logger(__name__)
 
 class GmailUserService:
     """GmailUserService class for interacting with Google Gmail API"""

@@ -4,10 +4,11 @@ from app.config.arangodb_constants import QdrantCollectionNames
 from arango import ArangoClient
 from app.modules.retrieval.retrieval_service import RetrievalService
 from app.modules.retrieval.retrieval_arango import ArangoService
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.modules.reranker.reranker import RerankerService
 from app.services.llm_config_handler import LLMConfigHandler
 
+logger = create_logger(__name__)
 
 class AppContainer(containers.DeclarativeContainer):
     """Dependency injection container for the application."""

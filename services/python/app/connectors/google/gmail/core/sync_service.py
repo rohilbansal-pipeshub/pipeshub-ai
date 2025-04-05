@@ -19,7 +19,7 @@ from app.connectors.core.kafka_service import KafkaService
 from app.config.configuration_service import ConfigurationService, config_node_constants
 from app.utils.time_conversion import get_epoch_timestamp_in_ms
 
-logger = create_logger("google_gmail_sync_service")
+logger = create_logger(__name__)
 
 class GmailSyncProgress:
     """Class to track sync progress"""
@@ -911,9 +911,9 @@ class GmailSyncEnterpriseService(BaseGmailSyncService):
                     messages_full.append(message_data)
 
                 for message in messages_full:
-                    attachments_for_message = await user_service.list_attachments(message['id'], org_id, user['userId'], account_type)
+                    attachments_for_message = await user_service.list_attachments(message, org_id, user['userId'], account_type)
                     attachments.extend(attachments_for_message)
-                    attachment_ids = [attachment['id']
+                    attachment_ids = [attachment['attachment_id']
                                       for attachment in attachments_for_message]
                     headers = message.get("headers", {})
                     permissions.append({
@@ -976,7 +976,7 @@ class GmailSyncEnterpriseService(BaseGmailSyncService):
 
                         # Process each message
                         for message in current_thread_messages:
-                            message_attachments = await user_service.list_attachments(message['id'], org_id, user['userId'], account_type)
+                            message_attachments = await user_service.list_attachments(message, org_id, user['userId'], account_type)
                             if message_attachments:
                                 logger.debug("📎 Found %s attachments in message %s", len(
                                     message_attachments), message['id'])
@@ -1034,7 +1034,6 @@ class GmailSyncEnterpriseService(BaseGmailSyncService):
                                 "connectorName": Connectors.GOOGLE_MAIL.value,
                                 "origin": OriginTypes.CONNECTOR.value,
                                 "mimeType": "text/gmail_content",
-                                "threadId": metadata['thread']['id'],
                                 "createdAtSourceTimestamp": int(message.get('internalDate', datetime.now(timezone.utc).timestamp())),
                                 "modifiedAtSourceTimestamp": int(message.get('internalDate', datetime.now(timezone.utc).timestamp()))
                             }

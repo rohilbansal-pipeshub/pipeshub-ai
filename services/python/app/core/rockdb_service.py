@@ -1,8 +1,9 @@
 from typing import Dict, List, Optional, Any
 from rocksdict import Rdict, Options
 import json
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 
+logger = create_logger(__name__)
 
 class RockDBService:
     def __init__(self, db_path: str = "data/rockdb"):

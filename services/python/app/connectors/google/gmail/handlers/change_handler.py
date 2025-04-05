@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 import uuid
 from app.config.configuration_service import config_node_constants
 from app.config.arangodb_constants import (CollectionNames, Connectors, 
                                            RecordTypes, OriginTypes, EventTypes)
 from app.utils.time_conversion import get_epoch_timestamp_in_ms
+
+logger = create_logger(__name__)
 
 class GmailChangeHandler:
     def __init__(self, config_service, arango_service):

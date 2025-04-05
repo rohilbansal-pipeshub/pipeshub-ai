@@ -37,7 +37,8 @@ from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
-logger = create_logger("indexing_setup")
+logger = create_logger(__name__)
+
 class AppContainer(containers.DeclarativeContainer):
     """Dependency injection container for the application."""
     # Log when container is initialized

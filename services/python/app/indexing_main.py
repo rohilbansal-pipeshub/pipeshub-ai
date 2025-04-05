@@ -1,10 +1,12 @@
 import uvicorn
 import asyncio
 from fastapi import FastAPI
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 from app.setups.indexing_setup import AppContainer, initialize_container
+
+logger = create_logger(__name__)
 
 container = AppContainer()
 container_lock = asyncio.Lock()

@@ -10,7 +10,7 @@ project_root = str(Path(__file__).parent.parent)
 sys.path.append(project_root)
 
 
-logger = create_logger('etcd_loader')
+logger = create_logger(__name__)
 
 
 async def load_config():

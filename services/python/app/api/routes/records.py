@@ -3,7 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from app.setups.query_setup import AppContainer
 from app.modules.retrieval.retrieval_arango import ArangoService
 from typing import Optional, Dict, Any, List
-from app.utils.logger import logger
+from app.utils.logger import create_logger
+
+logger = create_logger(__name__)
 
 router = APIRouter()
 

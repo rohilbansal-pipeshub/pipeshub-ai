@@ -1,11 +1,12 @@
 from typing import Optional, Dict
-from app.utils.logger import logger
-import os
+from app.utils.logger import create_logger
 from app.connectors.utils.decorators import exponential_backoff
 from app.config.configuration_service import ConfigurationService
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.connectors.google.google_drive.core.drive_user_service import DriveUserService
 from app.connectors.google.google_drive.core.drive_admin_service import DriveAdminService
+
+logger = create_logger(__name__)
 
 class GmailDriveInterface:
     """Interface for getting Drive files from Gmail, supporting both individual and enterprise setups"""

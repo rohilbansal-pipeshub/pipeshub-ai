@@ -5,10 +5,11 @@ import os
 import spacy
 import time
 from typing import Dict, Any, List, Tuple, Optional
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.modules.parsers.pdf.ocr_handler import OCRStrategy
 from spacy.language import Language
 
+logger = create_logger(__name__)
 
 class PyMuPDFOCRStrategy(OCRStrategy):
     def __init__(self, language: str = "eng"):
@@ -68,15 +69,15 @@ class PyMuPDFOCRStrategy(OCRStrategy):
                         # Store the OCR-processed PDF content
                         self.ocr_pdf_content = ocr_content
 
-                        # Create output directory if it doesn't exist
-                        output_dir = "output/searchable/pymupdf"
-                        os.makedirs(output_dir, exist_ok=True)
-                        logger.debug(f"📁 Using output directory: {output_dir}")
+                        # # Create output directory if it doesn't exist
+                        # output_dir = "output/searchable/pymupdf"
+                        # os.makedirs(output_dir, exist_ok=True)
+                        # logger.debug(f"📁 Using output directory: {output_dir}")
 
-                        # Generate unique filename using timestamp
-                        timestamp = time.strftime("%Y%m%d_%H%M%S")
-                        output_filename = f"ocr_processed_{timestamp}.pdf"
-                        output_path = os.path.join(output_dir, output_filename)
+                        # # Generate unique filename using timestamp
+                        # timestamp = time.strftime("%Y%m%d_%H%M%S")
+                        # output_filename = f"ocr_processed_{timestamp}.pdf"
+                        # output_path = os.path.join(output_dir, output_filename)
 
                         # # Save the PDF to file
                         # logger.info(

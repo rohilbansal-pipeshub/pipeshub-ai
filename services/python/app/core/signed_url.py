@@ -11,7 +11,7 @@ from app.config.configuration_service import ConfigurationService, config_node_c
 
 load_dotenv()
 
-logger = create_logger('signed_url')
+logger = create_logger(__name__)
 
 class SignedUrlConfig(BaseModel):
     private_key: str = os.getenv("SCOPED_JWT_SECRET")

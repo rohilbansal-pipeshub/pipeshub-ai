@@ -2,13 +2,14 @@ from openpyxl import load_workbook
 from typing import Dict, List, Any
 import io
 import os
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from openpyxl.cell.cell import MergedCell
 from openpyxl.utils import get_column_letter
 from app.modules.parsers.excel.prompt_template import prompt, sheet_summary_prompt, table_summary_prompt, row_text_prompt
 import json
 from datetime import datetime
 
+logger = create_logger(__name__)
 
 class ExcelParser:
     def __init__(self):

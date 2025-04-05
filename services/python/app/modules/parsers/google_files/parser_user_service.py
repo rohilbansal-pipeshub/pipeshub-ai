@@ -7,10 +7,11 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from app.config.configuration_service import ConfigurationService, config_node_constants
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.connectors.google.scopes import GOOGLE_PARSER_SCOPES
 
+logger = create_logger(__name__)
 
 class ParserUserService:
     """ParserUserService class for parsing Google Workspace files using user credentials"""

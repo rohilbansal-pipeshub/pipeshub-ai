@@ -1,11 +1,12 @@
 """Google Sheets Parser module for parsing Google Sheets content"""
 
 from typing import Dict, List, Optional, Any
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.decorators import exponential_backoff
 from .parser_admin_service import ParserAdminService
 from .parser_user_service import ParserUserService
 
+logger = create_logger(__name__)
 
 class GoogleSheetsParser:
     """Parser class for Google Sheets content"""

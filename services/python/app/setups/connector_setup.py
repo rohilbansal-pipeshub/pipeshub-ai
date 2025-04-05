@@ -9,6 +9,7 @@ from app.connectors.google.core.arango_service import ArangoService
 from app.connectors.core.kafka_service import KafkaService
 from confluent_kafka import Consumer, KafkaError
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
+from app.connectors.google.admin.google_admin_service import GoogleAdminService
 from app.connectors.google.google_drive.core.drive_admin_service import DriveAdminService
 from app.connectors.google.google_drive.core.drive_user_service import DriveUserService
 from app.connectors.google.google_drive.core.sync_service import DriveSyncIndividualService, DriveSyncEnterpriseService
@@ -29,10 +30,11 @@ from redis.exceptions import RedisError
 from qdrant_client import QdrantClient
 import aiohttp
 from app.utils.logger import create_logger
+from app.connectors.google.admin.admin_webhook_handler import AdminWebhookHandler
 
-logger = create_logger("connector_setup")
+logger = create_logger(__name__)
 
-async def initialize_individual_account_services_fn(container):
+async def initialize_individual_account_services_fn(org_id, container):
     """Initialize services for an individual account type."""
     try:    
         # Initialize base services
@@ -135,7 +137,7 @@ async def initialize_individual_account_services_fn(container):
 
     logger.info("✅ Successfully initialized services for individual account")
 
-async def initialize_enterprise_account_services_fn(container):
+async def initialize_enterprise_account_services_fn(org_id, container):
     """Initialize services for an enterprise account type."""
     
     try:
@@ -221,6 +223,30 @@ async def initialize_enterprise_account_services_fn(container):
         )
         sync_tasks = container.sync_tasks()
         assert isinstance(sync_tasks, SyncTasks)
+        
+        container.google_admin_service.override(
+            providers.Singleton(
+                GoogleAdminService,
+                config=container.config_service,
+                rate_limiter=container.rate_limiter,
+                google_token_handler=await container.google_token_handler(),
+                arango_service=await container.arango_service()
+            )
+        )
+        google_admin_service = container.google_admin_service()
+        assert isinstance(google_admin_service, GoogleAdminService)
+        
+        await google_admin_service.connect_admin(org_id)
+        await google_admin_service.create_admin_watch(org_id)
+
+        container.admin_webhook_handler.override(
+            providers.Singleton(
+                AdminWebhookHandler,
+                admin_service=google_admin_service
+            )
+        )
+        admin_webhook_handler = container.admin_webhook_handler()
+        assert isinstance(admin_webhook_handler, AdminWebhookHandler)
         
     except Exception as e:
         logger.error(f"❌ Failed to initialize services for enterprise account: {str(e)}")
@@ -309,6 +335,7 @@ class AppContainer(containers.DeclarativeContainer):
         config=signed_url_config,
         configuration_service=config_service
     )
+    
 
     # Services that will be initialized based on account type
     # Define lazy dependencies for account-based services:
@@ -319,6 +346,8 @@ class AppContainer(containers.DeclarativeContainer):
     drive_webhook_handler = providers.Dependency()
     gmail_webhook_handler = providers.Dependency()
     sync_tasks = providers.Dependency()
+    google_admin_service = providers.Dependency()
+    admin_webhook_handler = providers.Dependency()
 
     # Wire everything up
     wiring_config = containers.WiringConfiguration(

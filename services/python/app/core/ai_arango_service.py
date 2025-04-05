@@ -3,12 +3,14 @@
 # pylint: disable=E1101, W0718
 from arango import ArangoClient
 from app.config.configuration_service import ConfigurationService
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 import uuid
 from typing import Dict, List, Optional
 from app.config.arangodb_constants import CollectionNames, DepartmentNames
 from arango.database import TransactionDatabase
 from app.config.configuration_service import config_node_constants
+
+logger = create_logger(__name__)
 
 class ArangoService():
     """ArangoDB service for interacting with the database"""

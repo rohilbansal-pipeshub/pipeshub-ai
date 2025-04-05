@@ -4,7 +4,7 @@ import aiohttp
 from app.config.configuration_service import config_node_constants, Routes, TokenScopes
 from app.utils.logger import create_logger
 
-logger = create_logger('google_token_handler')
+logger = create_logger(__name__)
 
 class GoogleTokenHandler:
     def __init__(self, config_service, arango_service):

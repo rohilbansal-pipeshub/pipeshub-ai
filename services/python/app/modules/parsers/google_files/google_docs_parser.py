@@ -1,11 +1,12 @@
 """Google Docs Parser module for parsing Google Docs content"""
 
-from typing import Dict, List, Optional
-from app.utils.logger import logger
+from typing import Dict, Optional
+from app.utils.logger import create_logger
 from app.connectors.utils.decorators import exponential_backoff
 from .parser_admin_service import ParserAdminService
 from .parser_user_service import ParserUserService
 
+logger = create_logger(__name__)
 
 class GoogleDocsParser:
     """Parser class for Google Docs content"""

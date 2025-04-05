@@ -3,12 +3,14 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from langchain.chat_models.base import BaseChatModel
 from langchain.callbacks.base import BaseCallbackHandler
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from langchain_community.chat_models import AzureChatOpenAI, ChatOpenAI
 from app.config.ai_models_named_constants import AzureOpenAILLM
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_anthropic import ChatAnthropic
 
+
+logger = create_logger(__name__)
 
 class BaseLLMConfig(BaseModel):
     """Base configuration for all LLM providers"""

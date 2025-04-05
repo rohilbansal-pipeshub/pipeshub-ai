@@ -3,13 +3,14 @@ from azure.ai.formrecognizer.aio import DocumentAnalysisClient as AsyncDocumentA
 from typing import Dict, Any, List, Optional
 from io import BytesIO
 import fitz  # PyMuPDF for initial document check
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.modules.parsers.pdf.ocr_handler import OCRStrategy
 from spacy import Language
 import spacy
 import time
 import os
 
+logger = create_logger(__name__)
 
 class AzureOCRStrategy(OCRStrategy):
     def __init__(

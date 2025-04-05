@@ -14,7 +14,7 @@ from app.api.middlewares.auth import authMiddleware
 
 print("Starting connector app")
 
-logger = create_logger('google_connectors')
+logger = create_logger(__name__)
 
 container = AppContainer()
 
@@ -59,9 +59,9 @@ async def resume_sync_services(app_container: AppContainer) -> None:
 
             # Ensure the method is called on the correct object
             if accountType == 'enterprise' or accountType == 'business':
-                await initialize_enterprise_account_services_fn(app_container)
+                await initialize_enterprise_account_services_fn(org_id, app_container)
             elif accountType == 'individual':
-                await initialize_individual_account_services_fn(app_container)
+                await initialize_individual_account_services_fn(org_id, app_container)
             else:
                 logger.error("Account Type not valid")
                 return False

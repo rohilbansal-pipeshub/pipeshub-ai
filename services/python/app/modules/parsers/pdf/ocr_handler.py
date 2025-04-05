@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 import fitz
 from app.config.ai_models_named_constants import OCRProvider
 
+logger = create_logger(__name__)
 
 class OCRStrategy(ABC):
     """Abstract base class for OCR strategies"""
@@ -35,24 +36,34 @@ class OCRStrategy(ABC):
             page_area = page.rect.width * page.rect.height
 
             # Log detailed image information
+            significant_images = 0
+            MIN_IMAGE_WIDTH = 300  # Minimum width in pixels for a significant image
+            MIN_IMAGE_HEIGHT = 300  # Minimum height in pixels for a significant image
+
             for img_index, img in enumerate(images):
                 # img tuple contains: (xref, smask, width, height, bpc, colorspace, ...)
+                width, height = img[2], img[3]
+
                 logger.debug(f"📸 Image {img_index + 1}:")
-                logger.debug(f"    Width: {img[2]}, Height: {img[3]}")
+                logger.debug(f"    Width: {width}, Height: {height}")
                 logger.debug(f"    Bits per component: {img[4]}")
                 logger.debug(f"    Colorspace: {img[5]}")
                 logger.debug(f"    XRef: {img[0]}")
 
+                # Consider an image significant if it's larger than our minimum dimensions
+                if width > MIN_IMAGE_WIDTH and height > MIN_IMAGE_HEIGHT:
+                    significant_images += 1
+
             # Multiple criteria for OCR need
             has_minimal_text = len(text) < 100  # Less than 100 characters
-            has_images = len(images) > 0  # Contains images
-            text_density = sum((w[2]-w[0])*(w[3]-w[1])
+            has_significant_images = significant_images > 0  # Contains substantial images
+            text_density = sum((w[2]-w[0])*(w[3]-w[1]) 
                                for w in words) / page_area if words else 0
             low_density = text_density < 0.01
 
             logger.debug(f"📊 OCR metrics - Text length: {len(text)}, "
-                         f"Images: {len(images)}, "
-                         f"Text density: {text_density:.4f}")
+                        f"Significant images: {significant_images}, "
+                        f"Text density: {text_density:.4f}")
 
             # Extract and save images
             for img_index, img in enumerate(images):
@@ -73,7 +84,7 @@ class OCRStrategy(ABC):
                     logger.error(f"""❌ Error processing image {
                                  img_index + 1}: {str(e)}""")
 
-            needs_ocr = (has_minimal_text and has_images) or low_density
+            needs_ocr = (has_minimal_text and has_significant_images) or low_density
             logger.debug(f"🔍 OCR need determination: {needs_ocr}")
             return needs_ocr
 

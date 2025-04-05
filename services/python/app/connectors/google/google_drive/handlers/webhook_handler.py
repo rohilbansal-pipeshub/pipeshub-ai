@@ -7,7 +7,9 @@ import os
 
 from app.config.configuration_service import ConfigurationService, config_node_constants, WebhookConfig
 from app.config.arangodb_constants import CollectionNames
-from app.utils.logger import logger
+from app.utils.logger import create_logger
+
+logger = create_logger(__name__)
 
 class AbstractDriveWebhookHandler(ABC):
     def __init__(self, config: ConfigurationService, arango_service, change_handler):
@@ -152,16 +154,17 @@ class IndividualDriveWebhookHandler(AbstractDriveWebhookHandler):
         )
         user_id = await self.arango_service.get_entity_id_by_email(user_email)
         
-        # Get org_id from belongsTo relation for this user
-        query = f"""
-        FOR edge IN belongsTo
-            FILTER edge._from == 'users/{user_id}'
-            AND edge.entityType == 'ORGANIZATION'
-            RETURN PARSE_IDENTIFIER(edge._to).key
-        """
-        cursor = self.arango_service.db.aql.execute(query)
-        org_id = next(cursor, None)
+        # # Get org_id from belongsTo relation for this user
+        # query = f"""
+        # FOR edge IN belongsTo
+        #     FILTER edge._from == 'users/{user_id}'
+        #     AND edge.entityType == 'ORGANIZATION'
+        #     RETURN PARSE_IDENTIFIER(edge._to).key
+        # """
+        # cursor = self.arango_service.db.aql.execute(query)
+        # org_id = next(cursor, None)
         user = await self.arango_service.get_document(user_id, CollectionNames.USERS.value)
+        org_id = user.get('orgId')
         user_id = user.get('userId')
 
         if changes:
@@ -194,7 +197,7 @@ class IndividualDriveWebhookHandler(AbstractDriveWebhookHandler):
                 if not token or not token.get('token'):
                     continue
 
-                if await self._process_user_changes(token['user_email'], {
+                if await self._process_user_changes(token['userEmail'], {
                     'channel_id': token['channel_id'],
                     'resource_id': token['resource_id']
                 }):
@@ -282,13 +285,13 @@ class EnterpriseDriveWebhookHandler(AbstractDriveWebhookHandler):
                     logger.error(
                         "No page token found for channel %s", channel_id)
                     continue
-                user_service = await self.drive_admin_service.create_user_service(page_token['user_email'])
+                user_service = await self.drive_admin_service.create_user_service(page_token['userEmail'])
 
                 changes, new_token = await user_service.get_changes(
                     page_token=page_token['token']
                 )
                 
-                user_id = await self.arango_service.get_entity_id_by_email(page_token['user_email'])
+                user_id = await self.arango_service.get_entity_id_by_email(page_token['userEmail'])
                 # Get org_id from belongsTo relation for this user
                 query = f"""
                 FOR edge IN belongsTo
@@ -316,7 +319,7 @@ class EnterpriseDriveWebhookHandler(AbstractDriveWebhookHandler):
                         await self.arango_service.store_page_token(
                             channel_id=channel_id,
                             resource_id=resource_id,
-                            user_email=page_token['user_email'],
+                            user_email=page_token['userEmail'],
                             token=new_token
                         )
                         logger.info(

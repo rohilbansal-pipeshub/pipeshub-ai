@@ -9,7 +9,7 @@ from app.config.arangodb_constants import (CollectionNames, Connectors,
 from app.utils.time_conversion import get_epoch_timestamp_in_ms, parse_timestamp
 from app.config.configuration_service import config_node_constants
 
-logger = create_logger("google_drive_change_handler")
+logger = create_logger(__name__)
 
 class DriveChangeHandler:
     def __init__(self, config_service, arango_service):

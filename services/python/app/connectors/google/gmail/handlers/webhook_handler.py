@@ -6,8 +6,9 @@ import json
 import os
 from app.config.arangodb_constants import CollectionNames
 from app.config.configuration_service import ConfigurationService
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 
+logger = create_logger(__name__)
 
 class AbstractGmailWebhookHandler(ABC):
     def __init__(self, config: ConfigurationService, arango_service, change_handler):
@@ -301,10 +302,20 @@ class EnterpriseGmailWebhookHandler(AbstractGmailWebhookHandler):
                         "%s webhook: Failed to create user service for %s", self.handler_type, email_address)
                     return
 
-                logger.info("%s webhook: Fetching changes for %s",
-                            self.handler_type, email_address)
                 channel_history = await self.arango_service.get_channel_history_id(email_address)
+                if not channel_history:
+                    logger.warning(f"""⚠️ No historyId found for {
+                                   email_address}""")
+                    return False
+
+                logger.debug("channel_history: %s", channel_history)
                 current_history_id = channel_history['historyId']
+                if not current_history_id:
+                    logger.warning(f"""⚠️ No historyId found for {
+                                   email_address}""")
+                    return False
+
+                logger.debug("current_history_id: %s", current_history_id)
                 changes = await user_service.fetch_gmail_changes(email_address, current_history_id)
 
                 await self.arango_service.store_channel_history_id(changes, email_address)

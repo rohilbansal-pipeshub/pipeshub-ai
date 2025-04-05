@@ -5,12 +5,12 @@ from typing import Dict, Optional
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from app.config.configuration_service import ConfigurationService, Routes, TokenScopes, config_node_constants
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.modules.parsers.google_files.parser_user_service import ParserUserService
 from app.connectors.google.scopes import GOOGLE_PARSER_SCOPES
-import jwt
-import aiohttp
+
+logger = create_logger(__name__)
 
 class ParserAdminService:
     """ParserAdminService class for parsing Google Workspace files using admin credentials"""

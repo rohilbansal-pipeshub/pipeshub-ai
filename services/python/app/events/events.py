@@ -1,8 +1,10 @@
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 import aiohttp
 from io import BytesIO
 from app.config.arangodb_constants import EventTypes
 from app.config.arangodb_constants import CollectionNames
+
+logger = create_logger(__name__)
 
 class EventProcessor:
     def __init__(self, processor, arango_service):
@@ -66,8 +68,12 @@ class EventProcessor:
             extension = event_data.get('extension', 'unknown')
             mime_type = event_data.get('mimeType', 'unknown')
             
+            if extension is None:
+                extension = event_data['recordName'].split('.')[-1]
+            
             logger.info("🚀 Checking for mime_type")
             logger.info("🚀 mime_type: %s", mime_type)
+            logger.info("🚀 extension: %s", extension)
 
             if mime_type == "application/vnd.google-apps.presentation":
                 logger.info("🚀 Processing Google Slides")

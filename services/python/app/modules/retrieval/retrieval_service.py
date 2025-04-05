@@ -10,7 +10,7 @@ from app.core.llm_service import AzureLLMConfig, OpenAILLMConfig, GeminiLLMConfi
 from app.config.ai_models_named_constants import LLMProvider, AzureOpenAILLM
 from app.utils.logger import create_logger
 
-logger = create_logger("retrieval_service")
+logger = create_logger(__name__)
 
 class RetrievalService:
     def __init__(

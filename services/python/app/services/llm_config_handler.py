@@ -3,10 +3,12 @@ import json
 from confluent_kafka import Consumer, KafkaError
 import httpx
 from typing import Dict, List
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.config.configuration_service import config_node_constants, KafkaConfig
 from datetime import datetime, timezone
 from app.modules.retrieval.retrieval_service import RetrievalService
+
+logger = create_logger(__name__)
 
 class LLMConfigHandler:
     def __init__(self, config_service, retrieval_service: RetrievalService):

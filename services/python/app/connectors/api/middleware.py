@@ -7,7 +7,7 @@ from cryptography.exceptions import InvalidSignature
 from fastapi import Request
 from app.utils.logger import create_logger
 
-logger = create_logger('google_connectors')
+logger = create_logger(__name__)
 
 class WebhookAuthVerifier:
     """Reusable webhook auth helper for specific routes"""

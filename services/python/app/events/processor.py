@@ -3,7 +3,7 @@ from typing_extensions import List
 import json
 import spacy
 import fitz
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 import os
 from datetime import datetime
 
@@ -12,6 +12,9 @@ from app.config.arangodb_constants import CollectionNames
 from app.config.configuration_service import config_node_constants
 from app.config.ai_models_named_constants import OCRProvider, AzureDocIntelligenceModel
 from app.utils.llm import get_llm
+
+logger = create_logger(__name__)
+
 class Processor:
     def __init__(self, config_service, domain_extractor, indexing_pipeline, arango_service, parsers):
         logger.info("🚀 Initializing Processor")
@@ -192,6 +195,7 @@ class Processor:
             sentence_data = []
             
             for idx, item in enumerate(ordered_content, 1):
+                logger.info("🚀 item: %s", item)
                 if item['text'].strip():
                     context = item['context']
                     sentence_data.append({
@@ -573,7 +577,7 @@ class Processor:
                     "name": sheet_data['sheet_name'],
                     "type": "sheet",
                     "row_count": len(sheet_data['tables']),
-                    "column_count": max(len(table['headers']) for table in sheet_data['tables'])
+                    "column_count": max((len(table['headers']) for table in sheet_data['tables']), default=0)
                 }
                 numbered_items.append(sheet_entry)
 

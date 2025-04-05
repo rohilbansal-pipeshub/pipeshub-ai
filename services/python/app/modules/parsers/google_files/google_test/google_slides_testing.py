@@ -7,9 +7,10 @@ from typing import Dict, List, Optional
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 
+logger = create_logger(__name__)
 
 class GoogleSlidesTest:
     """Test class for Google Slides API operations and parsing"""

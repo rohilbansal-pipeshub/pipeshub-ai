@@ -25,7 +25,7 @@ from jose import JWTError
 from pydantic import ValidationError
 from app.connectors.api.middleware import WebhookAuthVerifier
 
-logger = create_logger("connector_routers")
+logger = create_logger(__name__)
 
 router = APIRouter()
 
@@ -966,3 +966,64 @@ async def stream_record(
     except Exception as e:
         logger.error("Error downloading file: %s", str(e))
         raise HTTPException(status_code=500, detail="Error downloading file")
+
+async def get_admin_webhook_handler(request: Request) -> Optional[Any]:
+    try:
+        container: AppContainer = request.app.container
+        admin_webhook_handler = container.admin_webhook_handler()
+        return admin_webhook_handler
+    except Exception as e:
+        logger.warning(f"Failed to get admin webhook handler: {str(e)}")
+        return None
+
+@router.post("/admin/webhook")
+@inject
+async def handle_admin_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks
+):
+    """Handle incoming webhook notifications from Google Workspace Admin"""
+    try:
+        verifier = WebhookAuthVerifier()
+        if not await verifier.verify_request(request):
+            raise HTTPException(status_code=401, detail="Unauthorized webhook request")
+
+        admin_webhook_handler = await get_admin_webhook_handler(request)
+        
+        if admin_webhook_handler is None:
+            logger.warning("Admin webhook handler not yet initialized - skipping webhook processing")
+            return {"status": "skipped", "message": "Webhook handler not yet initialized"}
+
+        # Log incoming request details
+        body = await request.json()
+        logger.info("📥 Incoming admin webhook request: %s", body)
+
+        # Get the event type from the events array
+        events = body.get('events', [])
+        if not events:
+            raise HTTPException(status_code=400, detail="No events found in webhook body")
+        
+        event_type = events[0].get('name')  # We'll process the first event
+        if not event_type:
+            raise HTTPException(status_code=400, detail="Missing event name in webhook body")
+
+        # Process notification in background
+        background_tasks.add_task(
+            admin_webhook_handler.process_notification,
+            event_type,
+            body
+        )
+        return {"status": "accepted"}
+
+    except json.JSONDecodeError as e:
+        logger.error("Invalid JSON in webhook body: %s", str(e))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid JSON format: {str(e)}"
+        )
+    except Exception as e:
+        logger.error("Error processing webhook: %s", str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )

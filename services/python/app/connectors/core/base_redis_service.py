@@ -1,10 +1,11 @@
 from typing import Optional, Any, Dict
 import json
 from redis import asyncio as aioredis
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.config.configuration_service import ConfigurationService
 import asyncio
 
+logger = create_logger(__name__)
 
 class BaseRedisService():
     """Service for handling Redis operations"""

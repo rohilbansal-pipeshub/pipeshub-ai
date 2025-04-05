@@ -1,14 +1,12 @@
 """Gmail Admin Service module for interacting with Google GMail API"""
 
 # pylint: disable=E1101, W0718
-import os
-from datetime import datetime
 from typing import Dict, List, Optional
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from app.config.configuration_service import ConfigurationService, config_node_constants, TokenScopes, Routes
+from app.config.configuration_service import ConfigurationService
 from app.connectors.google.gmail.core.gmail_user_service import GmailUserService
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.decorators import exponential_backoff
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.connectors.google.scopes import GOOGLE_CONNECTOR_ENTERPRISE_SCOPES
@@ -22,6 +20,8 @@ from app.exceptions.connector_google_exceptions import (
 )
 
 from app.utils.time_conversion import parse_timestamp
+
+logger = create_logger(__name__)
 
 class GmailAdminService:
     """GmailAdminService class for interacting with Google GMail API"""

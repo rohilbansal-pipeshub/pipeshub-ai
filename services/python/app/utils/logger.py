@@ -44,6 +44,3 @@ def create_logger(service_name):
         logger.addHandler(file_handler)
 
     return logger
-
-# Create default logger
-logger = create_logger('default')

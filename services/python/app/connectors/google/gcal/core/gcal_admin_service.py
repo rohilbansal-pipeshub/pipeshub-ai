@@ -7,14 +7,14 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from app.config.configuration_service import ConfigurationService, config_node_constants, Routes, TokenScopes
 from app.connectors.google.gcal.core.gcal_user_service import GCalUserService
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.decorators import exponential_backoff
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.config.arangodb_constants import CollectionNames
 from app.connectors.google.scopes import GOOGLE_CONNECTOR_ENTERPRISE_SCOPES
 from uuid import uuid4
-import jwt
-import aiohttp
+
+logger = create_logger(__name__)
 
 
 class GCalAdminService:

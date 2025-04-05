@@ -1,8 +1,10 @@
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.config.arangodb_constants import CollectionNames, RecordTypes
 from app.config.configuration_service import ConfigurationService, config_node_constants
 from arango import ArangoClient
 from typing import Optional, Dict
+
+logger = create_logger(__name__)
 
 class ArangoService():
     """ArangoDB service for interacting with the database"""

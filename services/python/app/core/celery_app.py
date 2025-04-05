@@ -1,9 +1,10 @@
 from celery import Celery
 from celery.schedules import crontab
 from typing import Any
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.config.configuration_service import ConfigurationService, config_node_constants, CeleryConfig, RedisConfig
 
+logger = create_logger(__name__)
 
 class CeleryApp:
     """Celery application manager"""

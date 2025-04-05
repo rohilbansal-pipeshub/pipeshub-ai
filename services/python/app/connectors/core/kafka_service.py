@@ -1,10 +1,12 @@
 from confluent_kafka import Producer
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.config.configuration_service import ConfigurationService, config_node_constants
 from app.config.arangodb_constants import EventTypes
 import json
 import asyncio
 from app.utils.time_conversion import get_epoch_timestamp_in_ms
+
+logger = create_logger(__name__)
 
 class KafkaService:
     def __init__(self, config: ConfigurationService):

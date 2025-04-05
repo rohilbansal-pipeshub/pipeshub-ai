@@ -10,11 +10,12 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from app.config.configuration_service import ConfigurationService
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.decorators import exponential_backoff
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.connectors.google.scopes import GOOGLE_CONNECTOR_INDIVIDUAL_SCOPES
 
+logger = create_logger(__name__)
 
 class GCalUserService:
     """GCalUserService class for interacting with Google Calendar API"""

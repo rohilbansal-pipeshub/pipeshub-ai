@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.core.celery_app import CeleryApp
 import asyncio
 from typing import Dict
 from celery.schedules import crontab
 from app.config.arangodb_constants import CollectionNames
+
+logger = create_logger(__name__)
 
 class SyncTasks:
     """Class to manage sync-related Celery tasks"""

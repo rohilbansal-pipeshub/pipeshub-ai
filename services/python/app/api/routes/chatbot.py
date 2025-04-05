@@ -5,7 +5,7 @@ from dependency_injector.wiring import inject
 from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import Optional, Dict, Any, List
 from app.setups.query_setup import AppContainer
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.modules.retrieval.retrieval_service import RetrievalService
 from app.modules.retrieval.retrieval_arango import ArangoService
 from app.config.configuration_service import ConfigurationService
@@ -15,6 +15,8 @@ from app.utils.query_transform import setup_query_transformation
 from app.utils.query_decompose import QueryDecompositionService
 from app.modules.reranker.reranker import RerankerService
 from app.utils.llm import get_llm
+
+logger = create_logger(__name__)
 
 router = APIRouter()
 

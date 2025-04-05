@@ -12,7 +12,7 @@ from app.connectors.core.base_arango_service import BaseArangoService
 from app.utils.time_conversion import get_epoch_timestamp_in_ms
 from app.config.arangodb_constants import CollectionNames, Connectors
 
-logger = create_logger('google_connectors')
+logger = create_logger(__name__)
 
 class ArangoService(BaseArangoService):
     """ArangoDB service class for interacting with the database"""
@@ -149,14 +149,14 @@ class ArangoService(BaseArangoService):
             history_id = channel_data['historyId']
 
             query = """
-            UPSERT { user_email: @user_email }
+            UPSERT { userEmail: @userEmail }
             INSERT { 
-                user_email: @user_email, 
-                historyId: @history_id,
+                userEmail: @userEmail, 
+                historyId: @historyId,
                 updatedAt: DATE_NOW()
             }
             UPDATE { 
-                history_id: @history_id,
+                historyId: @historyId,
                 updatedAt: DATE_NOW()
             } IN channelHistory
             RETURN NEW
@@ -165,8 +165,8 @@ class ArangoService(BaseArangoService):
             result = list(self.db.aql.execute(
                 query,
                 bind_vars={
-                    'user_email': user_email,
-                    'history_id': history_id,
+                    'userEmail': user_email,
+                    'historyId': history_id,
                 }
             ))
 
@@ -197,7 +197,7 @@ class ArangoService(BaseArangoService):
 
             query = """
             FOR history IN channelHistory
-            FILTER history.user_email == @user_email
+            FILTER history.userEmail == @userEmail
             RETURN {
                 historyId: history.historyId,
                 updatedAt: history.updatedAt
@@ -206,7 +206,7 @@ class ArangoService(BaseArangoService):
 
             result = list(self.db.aql.execute(
                 query,
-                bind_vars={'user_email': user_email}
+                bind_vars={'userEmail': user_email}
             ))
 
             if result:

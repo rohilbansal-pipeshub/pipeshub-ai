@@ -2,7 +2,7 @@ import asyncio
 import json
 from confluent_kafka import Consumer, KafkaError
 import httpx
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from dependency_injector.wiring import inject
 from typing import Dict, List
 from app.config.arangodb_constants import CollectionNames, Connectors
@@ -15,6 +15,7 @@ from app.utils.time_conversion import get_epoch_timestamp_in_ms
 # Import required services
 from app.config.configuration_service import config_node_constants
 
+logger = create_logger(__name__)
 
 class KafkaRouteConsumer:
     def __init__(self, config_service, arango_service, routes=[], app_container=None):
@@ -370,13 +371,13 @@ class KafkaRouteConsumer:
                         CollectionNames.USER_APP_RELATION.value,
                     )
                     
-                    if app['name'] in ['calendar']:
+                    if app['name'].lower() in ['calendar']:
                             logger.info("Skipping init")
                             continue
 
                     # Start sync for the specific user
                     await self._handle_sync_event(
-                        f'{app["name"]}.user',
+                        f'{app["name"].lower()}.user',
                         {'path_params': {'user_email': payload['email']}}
                     )
 
@@ -509,9 +510,9 @@ class KafkaRouteConsumer:
                     accountType = org['accountType']
                     # Use the existing app container to initialize services
                     if accountType == 'enterprise' or accountType == 'business':
-                        await initialize_enterprise_account_services_fn(self.app_container)
+                        await initialize_enterprise_account_services_fn(org_id, self.app_container)
                     elif accountType == 'individual':
-                        await initialize_individual_account_services_fn(self.app_container)
+                        await initialize_individual_account_services_fn(org_id, self.app_container)
                     else:
                         logger.error("Account Type not valid")
                         return False

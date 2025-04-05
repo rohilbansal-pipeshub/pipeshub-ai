@@ -3,7 +3,7 @@
 # pylint: disable=E1101, W0718
 from arango import ArangoClient
 from app.config.configuration_service import ConfigurationService
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.config.arangodb_constants import CollectionNames
 from app.config.configuration_service import config_node_constants
 import uuid
@@ -27,6 +27,8 @@ from schema.arango.edges import (
     user_app_relation_schema,
     basic_edge_schema
 )
+
+logger = create_logger(__name__)
 
 class BaseArangoService():
     """Base ArangoDB service class for interacting with the database"""

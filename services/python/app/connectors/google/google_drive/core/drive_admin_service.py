@@ -8,7 +8,7 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from app.config.configuration_service import ConfigurationService
 from app.connectors.google.google_drive.core.drive_user_service import DriveUserService
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.decorators import exponential_backoff
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.connectors.google.scopes import GOOGLE_CONNECTOR_ENTERPRISE_SCOPES
@@ -19,6 +19,7 @@ from app.exceptions.connector_google_exceptions import (
     AdminDelegationError, AdminQuotaError, UserOperationError
 )
 
+logger = create_logger(__name__)
 
 class DriveAdminService:
     """DriveAdminService class for interacting with Google Drive API"""

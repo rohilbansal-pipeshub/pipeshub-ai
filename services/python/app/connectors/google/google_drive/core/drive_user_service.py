@@ -10,7 +10,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import BatchHttpRequest
 from app.config.arangodb_constants import Connectors, RecordTypes
 from app.config.configuration_service import ConfigurationService, config_node_constants, WebhookConfig
-from app.utils.logger import logger
+from app.utils.logger import create_logger
 from app.connectors.utils.decorators import exponential_backoff, token_refresh
 from app.connectors.utils.rate_limiter import GoogleAPIRateLimiter
 from app.connectors.google.scopes import GOOGLE_CONNECTOR_INDIVIDUAL_SCOPES
@@ -22,6 +22,8 @@ from app.exceptions.connector_google_exceptions import (
     GoogleAuthError, GoogleDriveError, DriveOperationError, 
     DrivePermissionError, DriveSyncError, BatchOperationError
 )
+
+logger = create_logger(__name__)
 
 class DriveUserService:
     """DriveService class for interacting with Google Drive API"""
