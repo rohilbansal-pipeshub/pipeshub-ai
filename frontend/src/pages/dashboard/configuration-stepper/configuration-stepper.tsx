@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  CircularProgress
+  CircularProgress,
 } from '@mui/material';
 
 import axios from 'src/utils/axios';
@@ -429,10 +429,17 @@ const ConfigurationStepper: React.FC<ConfigurationStepperProps> = ({ open, onClo
       const llmConfig = {
         llm: [
           {
-            provider: llmValues!.modelType === 'openai' ? 'openAI' : llmValues!.modelType ==='gemini' ? 'gemini' :'azureOpenAI',
+            provider:
+              llmValues!.modelType === 'openai'
+                ? 'openAI'
+                : llmValues!.modelType === 'gemini'
+                  ? 'gemini'
+                  : llmValues!.modelType === 'anthropic'
+                    ? 'anthropic'
+                    : 'azureOpenAI',
             configuration: (() => {
               // For OpenAI config
-              if (llmValues!.modelType === 'openai' || llmValues!.modelType ==='gemini') {
+              if (llmValues!.modelType === 'openai' || llmValues!.modelType === 'gemini' || llmValues!.modelType === 'anthropic') {
                 const config: any = {
                   apiKey: llmValues!.apiKey,
                   model: llmValues!.model,
@@ -1052,7 +1059,13 @@ const ConfigurationStepper: React.FC<ConfigurationStepperProps> = ({ open, onClo
     >
       <DialogTitle sx={{ px: 3, pt: 2, pb: 2, display: 'flex', justifyContent: 'space-between' }}>
         <Typography variant="h6">System Configuration</Typography>
-        <IconButton edge="end" color="inherit" onClick={handleCloseWithStatus} disabled={isSubmitting} aria-label="close">
+        <IconButton
+          edge="end"
+          color="inherit"
+          onClick={handleCloseWithStatus}
+          disabled={isSubmitting}
+          aria-label="close"
+        >
           <Iconify icon="eva:close-outline" />
         </IconButton>
       </DialogTitle>

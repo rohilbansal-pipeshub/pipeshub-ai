@@ -29,7 +29,7 @@ import { Iconify } from 'src/components/iconify';
 
 // LLM form values interfaces
 interface LlmFormValues {
-  modelType: 'openAI' | 'azureOpenAI' | 'gemini';
+  modelType: 'openAI' | 'azureOpenAI' | 'gemini' | 'anthropic';
   apiKey: string;
   model: string;
   // clientId?: string;
@@ -46,6 +46,12 @@ interface OpenAILlmFormValues {
 
 interface GeminiLlmFormValues {
   modelType: 'gemini';
+  apiKey: string;
+  model: string;
+}
+
+interface AnthropicLlmFormValues {
+  modelType: 'anthropic';
   apiKey: string;
   model: string;
 }
@@ -90,6 +96,14 @@ const geminiSchema = z.object({
   model: z.string().min(1, 'Model is required'),
 });
 
+// Zod schema for anthropic validation
+const anthropicSchema = z.object({
+  modelType: z.literal('anthropic'),
+  // clientId: z.string().min(1, 'Client ID is required'),
+  apiKey: z.string().min(1, 'API Key is required'),
+  model: z.string().min(1, 'Model is required'),
+});
+
 // Zod schema for Azure OpenAI validation
 const azureSchema = z.object({
   modelType: z.literal('azureOpenAI'),
@@ -103,7 +117,12 @@ const azureSchema = z.object({
 });
 
 // Combined schema using discriminated union
-const llmSchema = z.discriminatedUnion('modelType', [openaiSchema, azureSchema, geminiSchema]);
+const llmSchema = z.discriminatedUnion('modelType', [
+  openaiSchema,
+  azureSchema,
+  geminiSchema,
+  anthropicSchema,
+]);
 
 // Utility functions for API interaction
 const getLlmConfig = async (): Promise<LlmFormValues | null> => {
@@ -117,11 +136,13 @@ const getLlmConfig = async (): Promise<LlmFormValues | null> => {
       const config = llmConfig.configuration;
 
       // Set the modelType based on the provider
-      let modelType: 'openAI' | 'azureOpenAI' | 'gemini';
+      let modelType: 'openAI' | 'azureOpenAI' | 'gemini' | 'anthropic';
       if (llmConfig.provider === 'azureOpenAI') {
         modelType = 'azureOpenAI';
       } else if (llmConfig.provider === 'gemini') {
         modelType = 'gemini';
+      } else if (llmConfig.provider === 'anthropic') {
+        modelType = 'anthropic';
       } else {
         modelType = 'openAI';
       }
@@ -184,8 +205,14 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
     const [formSubmitSuccess, setFormSubmitSuccess] = useState(false);
     const [fetchError, setFetchError] = useState<boolean>(false);
 
-    const [modelType, setModelType] = useState<'openAI' | 'azureOpenAI' | 'gemini'>(
-      provider === 'Azure OpenAI' ? 'azureOpenAI' : provider === 'Gemini' ? 'gemini' : 'openAI'
+    const [modelType, setModelType] = useState<'openAI' | 'azureOpenAI' | 'gemini' | 'anthropic'>(
+      provider === 'Azure OpenAI'
+        ? 'azureOpenAI'
+        : provider === 'Gemini'
+          ? 'gemini'
+          : provider === 'Anthropic'
+            ? 'anthropic'
+            : 'openAI'
     );
 
     // Create separate forms for OpenAI and Azure
@@ -215,6 +242,22 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
       mode: 'onChange',
       defaultValues: {
         modelType: 'gemini',
+        // clientId: '',
+        apiKey: '',
+        model: '',
+      },
+    });
+
+    const {
+      control: anthropicControl,
+      handleSubmit: handleAnthropicSubmit,
+      reset: resetAnthropic,
+      formState: { isValid: isAnthropicValid },
+    } = useForm<AnthropicLlmFormValues>({
+      resolver: zodResolver(anthropicSchema),
+      mode: 'onChange',
+      defaultValues: {
+        modelType: 'anthropic',
         // clientId: '',
         apiKey: '',
         model: '',
@@ -271,6 +314,23 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
       }
     };
 
+    const onAnthropicSubmit: SubmitHandler<AnthropicLlmFormValues> = async (data) => {
+      try {
+        await updateLlmConfig(data, 'anthropic');
+        if (onSaveSuccess) {
+          onSaveSuccess();
+        }
+        setIsEditing(false);
+        setFormSubmitSuccess(true);
+      } catch (error) {
+        const errorMessage =
+          error.response?.data?.message || 'Failed to save Anthropic configuration';
+        setSaveError(errorMessage);
+        console.error('Error saving Anthropic configuration:', error);
+        setFormSubmitSuccess(false);
+      }
+    };
+
     const onAzureSubmit: SubmitHandler<AzureLlmFormValues> = async (data) => {
       try {
         await updateLlmConfig(data, 'azureOpenAI');
@@ -304,6 +364,8 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
             handleAzureSubmit(onAzureSubmit)();
           } else if (modelType === 'gemini') {
             handleGeminiSubmit(onGeminiSubmit)();
+          } else if (modelType === 'anthropic') {
+            handleAnthropicSubmit(onAnthropicSubmit)();
           }
 
           // Wait for a short time to allow the form submission to complete
@@ -362,6 +424,12 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                 apiKey: config.apiKey || '',
                 model: config.model || '',
               });
+            } else if (config.modelType === 'anthropic') {
+              resetAnthropic({
+                modelType: 'anthropic',
+                apiKey: config.apiKey || '',
+                model: config.model || '',
+              });
             } else {
               // Default to OpenAI configuration
               resetOpenAI({
@@ -381,6 +449,12 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
             });
             resetGemini({
               modelType: 'gemini',
+              // clientId: '',
+              apiKey: '',
+              model: '',
+            });
+            resetAnthropic({
+              modelType: 'anthropic',
               // clientId: '',
               apiKey: '',
               model: '',
@@ -411,6 +485,12 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
             apiKey: '',
             model: '',
           });
+          resetAnthropic({
+            modelType: 'anthropic',
+            // clientId: '',
+            apiKey: '',
+            model: '',
+          });
           resetAzure({
             modelType: 'azureOpenAI',
             endpoint: '',
@@ -424,7 +504,7 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
       };
 
       fetchConfig();
-    }, [resetOpenAI, resetAzure, resetGemini]);
+    }, [resetOpenAI, resetAzure, resetGemini, resetAnthropic]);
 
     // Reset saveError when it changes
     useEffect(() => {
@@ -450,13 +530,23 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
         isCurrentFormValid = isAzureValid;
       } else if (modelType === 'gemini') {
         isCurrentFormValid = isGeminiValid; // Assuming you have a validation state for Gemini
+      } else if (modelType === 'anthropic') {
+        isCurrentFormValid = isAnthropicValid; // Assuming you have a validation state for Gemini
       }
 
       onValidationChange(isCurrentFormValid && isEditing);
-    }, [isOpenAIValid, isAzureValid, isGeminiValid, isEditing, modelType, onValidationChange]);
+    }, [
+      isOpenAIValid,
+      isAzureValid,
+      isGeminiValid,
+      isAnthropicValid,
+      isEditing,
+      modelType,
+      onValidationChange,
+    ]);
 
     // Handle model type change
-    const handleModelTypeChange = (newType: 'openAI' | 'azureOpenAI' | 'gemini') => {
+    const handleModelTypeChange = (newType: 'openAI' | 'azureOpenAI' | 'gemini' | 'anthropic') => {
       setModelType(newType);
       // Don't reset forms - we keep separate state for each
     };
@@ -488,6 +578,12 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                   apiKey: config.apiKey || '',
                   model: config.model || '',
                 });
+              } else if (modelType === 'anthropic') {
+                resetAnthropic({
+                  modelType: 'anthropic',
+                  apiKey: config.apiKey || '',
+                  model: config.model || '',
+                });
               } else {
                 resetOpenAI({
                   modelType: 'openAI',
@@ -506,6 +602,12 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
               });
               resetGemini({
                 modelType: 'gemini',
+                // clientId: '',
+                apiKey: '',
+                model: '',
+              });
+              resetAnthropic({
+                modelType: 'anthropic',
                 // clientId: '',
                 apiKey: '',
                 model: '',
@@ -595,13 +697,18 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                 value={modelType}
                 label="Provider Type"
                 onChange={(e: SelectChangeEvent) => {
-                  const newType = e.target.value as 'openAI' | 'azureOpenAI' | 'gemini';
+                  const newType = e.target.value as
+                    | 'openAI'
+                    | 'azureOpenAI'
+                    | 'gemini'
+                    | 'anthropic';
                   handleModelTypeChange(newType);
                 }}
               >
                 <MenuItem value="openAI">OpenAI API</MenuItem>
                 <MenuItem value="azureOpenAI">Azure OpenAI Service</MenuItem>
                 <MenuItem value="gemini">Gemini API</MenuItem>
+                <MenuItem value="anthropic">Anthropic API</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -793,9 +900,93 @@ const LlmConfigForm = forwardRef<LlmConfigFormRef, LlmConfigFormProps>(
                       fullWidth
                       size="small"
                       error={!!fieldState.error}
-                      helperText={
-                        fieldState.error?.message || 'e.g., gemini-2.0-flash'
-                      }
+                      helperText={fieldState.error?.message || 'e.g., gemini-2.0-flash'}
+                      required
+                      disabled={!isEditing || fetchError}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Iconify icon="mdi:robot" width={18} height={18} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: alpha(theme.palette.text.primary, 0.15),
+                          },
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+            </>
+          )}
+          {modelType === 'anthropic' && (
+            <>
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="apiKey"
+                  control={anthropicControl}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      label="API Key"
+                      fullWidth
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message || 'Your Anthropic API Key'}
+                      required
+                      disabled={!isEditing || fetchError}
+                      type={showGeminiPassword ? 'text' : 'password'}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Iconify icon="mdi:key" width={18} height={18} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton
+                              onClick={() => setShowGeminiPassword(!showGeminiPassword)}
+                              edge="end"
+                              size="small"
+                              disabled={!isEditing || fetchError}
+                            >
+                              <Iconify
+                                icon={showGeminiPassword ? 'eva:eye-off-fill' : 'eva:eye-fill'}
+                                width={16}
+                                height={16}
+                              />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: alpha(theme.palette.text.primary, 0.15),
+                          },
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Controller
+                  name="model"
+                  control={anthropicControl}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      label="Model Name"
+                      fullWidth
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message || 'e.g., claude-3-7-sonnet-20250219'}
                       required
                       disabled={!isEditing || fetchError}
                       InputProps={{

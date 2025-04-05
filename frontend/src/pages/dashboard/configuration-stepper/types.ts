@@ -12,6 +12,12 @@ export interface GeminiLlmFormValues {
   apiKey: string;
   model: string;
 }
+export interface AnthropicLlmFormValues {
+  modelType: 'anthropic';
+  // clientId: string;
+  apiKey: string;
+  model: string;
+}
 
 // Azure OpenAI specific fields
 export interface AzureLlmFormValues {
@@ -23,7 +29,7 @@ export interface AzureLlmFormValues {
 }
 
 // Union type for LLM form values
-export type LlmFormValues = OpenAILlmFormValues | AzureLlmFormValues | GeminiLlmFormValues;
+export type LlmFormValues = OpenAILlmFormValues | AzureLlmFormValues | GeminiLlmFormValues | AnthropicLlmFormValues;
 
 
 export const storageTypes = {

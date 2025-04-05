@@ -28,6 +28,7 @@ import type {
   AzureLlmFormValues,
   OpenAILlmFormValues,
   GeminiLlmFormValues,
+  AnthropicLlmFormValues,
 } from './types';
 
 // Zod schema for OpenAI validation with more descriptive error messages
@@ -45,6 +46,13 @@ const geminiSchema = z.object({
   model: z.string().min(1, 'Model is required'),
 });
 
+const anthropicSchema = z.object({
+  modelType: z.literal('anthropic'),
+  // clientId: z.string().min(1, 'Client ID is required'),
+  apiKey: z.string().min(1, 'API Key is required'),
+  model: z.string().min(1, 'Model is required'),
+});
+
 // Zod schema for Azure OpenAI validation with more descriptive error messages
 const azureSchema = z.object({
   modelType: z.literal('azure'),
@@ -55,7 +63,12 @@ const azureSchema = z.object({
 });
 
 // Combined schema using discriminated union
-const llmSchema = z.discriminatedUnion('modelType', [openaiSchema, azureSchema, geminiSchema]);
+const llmSchema = z.discriminatedUnion('modelType', [
+  openaiSchema,
+  azureSchema,
+  geminiSchema,
+  anthropicSchema,
+]);
 
 interface LlmConfigStepProps {
   onSubmit: (data: LlmFormValues) => void;
@@ -65,7 +78,7 @@ interface LlmConfigStepProps {
 
 const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initialValues }) => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [modelType, setModelType] = useState<'openai' | 'azure' | 'gemini'>(
+  const [modelType, setModelType] = useState<'openai' | 'azure' | 'gemini' | 'anthropic'>(
     initialValues?.modelType || 'openai'
   );
 
@@ -88,6 +101,14 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
         model: initialValues?.model || '',
       } as GeminiLlmFormValues;
     }
+    if (modelType === 'anthropic') {
+      return {
+        modelType: 'anthropic' as const,
+        // clientId: (initialValues as OpenAILlmFormValues)?.clientId || '',
+        apiKey: initialValues?.apiKey || '',
+        model: initialValues?.model || '',
+      } as AnthropicLlmFormValues;
+    }
     return {
       modelType: 'openai' as const,
       // clientId: (initialValues as OpenAILlmFormValues)?.clientId || '',
@@ -109,7 +130,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
   });
 
   // Handle model type change
-  const handleModelTypeChange = (newType: 'openai' | 'azure' | 'gemini') => {
+  const handleModelTypeChange = (newType: 'openai' | 'azure' | 'gemini' | 'anthropic') => {
     setModelType(newType);
     reset(
       newType === 'azure'
@@ -127,12 +148,19 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
               apiKey: '',
               model: '',
             } as GeminiLlmFormValues)
-          : ({
-              modelType: 'openai',
-              // clientId: '',
-              apiKey: '',
-              model: '',
-            } as OpenAILlmFormValues)
+          : newType === 'anthropic'
+            ? ({
+                modelType: 'anthropic',
+                // clientId: '',
+                apiKey: '',
+                model: '',
+              } as AnthropicLlmFormValues)
+            : ({
+                modelType: 'openai',
+                // clientId: '',
+                apiKey: '',
+                model: '',
+              } as OpenAILlmFormValues)
     );
   };
 
@@ -205,7 +233,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
                   {...field}
                   label="Provider *"
                   onChange={(e: SelectChangeEvent) => {
-                    const newType = e.target.value as 'openai' | 'azure' | 'gemini';
+                    const newType = e.target.value as 'openai' | 'azure' | 'gemini' | 'anthropic';
                     field.onChange(newType);
                     handleModelTypeChange(newType);
                   }}
@@ -213,6 +241,7 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
                   <MenuItem value="openai">OpenAI</MenuItem>
                   <MenuItem value="azure">Azure OpenAI</MenuItem>
                   <MenuItem value="gemini">Gemini</MenuItem>
+                  <MenuItem value="anthropic">Anthropic</MenuItem>
                 </Select>
                 {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
               </FormControl>
@@ -354,7 +383,9 @@ const LlmConfigStep: React.FC<LlmConfigStepProps> = ({ onSubmit, onSkip, initial
                     ? 'e.g., gpt-4-turbo'
                     : modelType === 'gemini'
                       ? 'e.g., gemini-2.0-flash'
-                      : 'e.g., gpt-4o')
+                      : modelType === 'anthropic'
+                        ? 'e.g.,  claude-3-7-sonnet-20250219'
+                        : 'e.g., gpt-4o')
                 }
                 required
                 onBlur={() => {
